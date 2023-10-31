@@ -89,5 +89,7 @@ wheels/
 
 # Ignore everything in the data directory
 data/*
+saved_data/*
 # Do not ignore the data directory itself
 !data/.gitkeep
+!saved_data/.gitkeep
