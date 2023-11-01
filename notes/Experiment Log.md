@@ -76,6 +76,8 @@ Mainly 2 types models to do the binary classification:
 
 #### 2.4.1 Model capacity verification
 
+This stage is to verify whether the dataset is good, and whether the model trained on train set can generalize onto test set.
+
 Training setup:
 
 - lr = 0.001
@@ -103,5 +105,25 @@ MLP:
 
 - After configuring `weight_decay` to Adam (which allows L2 regularaztion), the overfitting is postponed, but not improving the best performance on test set (loss ~0.27)
 - After taking out mask columns from training data, performance is slightly better (loss ~0.26)
-- Also try training on balanced training set and evaluating on balanced test set (by under-sampling), 
+- Also try training on balanced training set and evaluating on balanced test set (by under-sampling),
+
+##### Observation summary
+
+- Models generally suffer from overfitting
+- Maybe the data itself just isn't good enough
+
+#### 2.4.2 Synthetic dataset distillation
+
+Distilled dataset using Matching Gradients, 100 iterations.
+
+Evaluate by:
+
+- Train 2 models simultaneously, syn model trained on synthetic dataset, and real model trained on real dataset (balanced)
+- Both models are evaluated (computing loss and accuracy) on real dataset after each epoch
+- Compare both models' performance
+- Result: syn model isn't learning anything, acc near 0.5 (random guess)
+
+##### Next move
+
+Vanilla dataset distillation ("train on synth, val on real, backward loss all the way to the synth data"): working on this
 
