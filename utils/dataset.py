@@ -88,8 +88,9 @@ class IHMPreliminaryDatasetReal(Dataset):
         data = pd.read_csv(file_path, index_col=0)
         processed_data = []
         for col_name, col_data in data.items():
-            if "mask" in col_name and self.mask: # mask column, do no processing
-                processed_data.append(torch.tensor(col_data.values, dtype=torch.float).unsqueeze(1)) # sized (seqlen*1)
+            if "mask" in col_name: # mask column, do no processing
+                if self.mask:
+                    processed_data.append(torch.tensor(col_data.values, dtype=torch.float).unsqueeze(1)) # sized (seqlen*1)
             elif col_name in self.avg.keys(): # column is a continuous feature, normalize it
                 normalized_col_data = (col_data - self.avg[col_name]) / self.std[col_name]
                 processed_data.append(torch.tensor(normalized_col_data.values, dtype=torch.float).unsqueeze(1)) # sized (seqlen*1)
