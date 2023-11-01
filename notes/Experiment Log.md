@@ -85,7 +85,7 @@ Training setup:
 
 On both models, test loss stops to decrease within 3 epochs, and then rise all the way up, which points to **severe overfitting**.
 
-Pick the best performing epoch, generate a classfication report, on a **balanced test set**:
+Pick the best performing epoch (overall acc ~90%), generate a classfication report, on a **balanced test set**:
 
 1DCNN:
 
@@ -98,3 +98,6 @@ MLP:
 <img src="assets/image-20231101001225836.png" alt="image-20231101001225836" style="zoom:50%;" />
 
 <img src="assets/image-20231101001203761.png" alt="image-20231101001203761" style="zoom:50%;" />
+
+After configuring `weight_decay` to Adam (which allows L2 regularaztion), the overfitting is postponed, but not improving the best performance on test set (loss ~0.27).
+

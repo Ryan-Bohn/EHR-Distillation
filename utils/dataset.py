@@ -26,21 +26,23 @@ class TensorDataset(Dataset):
 def tensor_to_preliminary_timeseries(x: torch.Tensor):
     pass
 
-
 class IHMPreliminaryDatasetReal(Dataset):
     # load cleaned mimic3benchmark preprocessed data as dataset
-    def __init__(self, dir, avg_dict, std_dict, numcls_dict, dstype="train", balance=False):
+    def __init__(self, dir, avg_dict, std_dict, numcls_dict, dstype="train", balance=False, mask=True):
         """
         dir: directory of all cleaned timeseries csvs (<subject_id>_episode<#>_clean.csv) and label file (labels.csv)
         dstype: "train" or "test" 
         avg_dict and std_dict: for continous columns only
         numcls_dict: stating how many classes are there for categorical columns only
+        balance: set this to be True will make every label equally distributed
+        mask: set this to false will take out the mask columns
         """
         self.dir = dir
         self.dstype = dstype
         self.avg = avg_dict
         self.std = std_dict
         self.numcls = numcls_dict
+        self.mask = mask
         self.episode_paths = glob.glob(os.path.join(dir, "*_episode*_clean.csv"))
         labels_dict = pd.read_csv(os.path.join(dir, "labels.csv"), index_col=0)["y_true"].to_dict()
         # make list of labels corresponding to episode_paths
@@ -86,7 +88,7 @@ class IHMPreliminaryDatasetReal(Dataset):
         data = pd.read_csv(file_path, index_col=0)
         processed_data = []
         for col_name, col_data in data.items():
-            if "mask" in col_name: # mask column, do no processing
+            if "mask" in col_name and self.mask: # mask column, do no processing
                 processed_data.append(torch.tensor(col_data.values, dtype=torch.float).unsqueeze(1)) # sized (seqlen*1)
             elif col_name in self.avg.keys(): # column is a continuous feature, normalize it
                 normalized_col_data = (col_data - self.avg[col_name]) / self.std[col_name]
