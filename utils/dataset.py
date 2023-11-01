@@ -2,11 +2,13 @@ import os
 import re
 import glob
 import random
+from collections import Counter
 
 import torch
 from torch.utils.data import Dataset
 import torch.nn.functional as F
 import pandas as pd
+import numpy as np
 
 
 class TensorDataset(Dataset):
@@ -27,7 +29,7 @@ def tensor_to_preliminary_timeseries(x: torch.Tensor):
 
 class IHMPreliminaryDatasetReal(Dataset):
     # load cleaned mimic3benchmark preprocessed data as dataset
-    def __init__(self, dir, avg_dict, std_dict, numcls_dict, dstype="train"):
+    def __init__(self, dir, avg_dict, std_dict, numcls_dict, dstype="train", balance=False):
         """
         dir: directory of all cleaned timeseries csvs (<subject_id>_episode<#>_clean.csv) and label file (labels.csv)
         dstype: "train" or "test" 
@@ -52,6 +54,26 @@ class IHMPreliminaryDatasetReal(Dataset):
             if key not in labels_dict.keys():
                 raise KeyError(f"Mapping key not foound: {key}")
             self.labels.append(labels_dict[key])
+        if balance:
+            self.under_sample()
+
+    def under_sample(self):
+        # Count the number of instances in each class
+        label_counts = Counter(self.labels)
+
+        # Find the number of instances in the least common class
+        min_count = label_counts[min(label_counts, key=label_counts.get)]
+
+        # Indices to keep for each class
+        indices_to_keep = {label: np.where(np.array(self.labels) == label)[0][:min_count].tolist() for label in label_counts}
+
+        # Flatten the list of indices and sort them
+        all_indices_to_keep = [idx for indices in indices_to_keep.values() for idx in indices]
+        all_indices_to_keep.sort()
+
+        # Update the episode paths and labels with the balanced dataset
+        self.episode_paths = [self.episode_paths[idx] for idx in all_indices_to_keep]
+        self.labels = [self.labels[idx] for idx in all_indices_to_keep]
    
     def __len__(self):
         return len(self.episode_paths)

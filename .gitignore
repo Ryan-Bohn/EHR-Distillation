@@ -84,12 +84,15 @@ ehthumbs.db
 
 # Ignore folders #
 ##################
-raw_data/
-wheels/
+
 
 # Ignore everything in the data directory
 data/*
 saved_data/*
+raw_data/*
+wheels/*
 # Do not ignore the data directory itself
 !data/.gitkeep
 !saved_data/.gitkeep
+!raw_data/.gitkeep
+!wheels/.gitkeep

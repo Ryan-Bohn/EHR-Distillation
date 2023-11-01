@@ -36,6 +36,8 @@
 
 ### 2.2 Data processing
 
+#### 2.2.1 Feature selection
+
 Useing the exact same pipeline of H. Harutyunyan et al., we have:
 
 - **Size**
@@ -52,23 +54,47 @@ Useing the exact same pipeline of H. Harutyunyan et al., we have:
 
   - Episode-level information (patient age, gender, ethnicity, height, weight) and outcomes (mortality, length of stay, diagnoses) are also available
 
-#### Question now
+- **Balance**
+  - ~86% negative (safe)
+  - ~14$ positive (mortality)
 
-How to approach the time series?
+#### 2.2.2 Preprocess
 
-#### My intuitions
+1. Resample: just like in the original paper, **resample** the timeseries to a fixed sample rate (1h), so that the length is unified
+2. Recover missing variables: recover by **imputation **(forward filling), add mask columns for each feature column, representing whether the datapoint is imputed or real
+3. Normilize each column using **Z-score normalization**
+4. Each tensor is sized 48 (time steps) * 59 (num features, mask columns included)
 
-1. Resample: just like in the original paper, **resample** the timeseries to a fixed sample rate, so that the length is unified
-2. Recover missing variables: recover by **imputation**
-3. **Treat them as if they are images**: for each column (representing a type of variable), there are constraints on the values, say pH is within 0~14, just like pixels are within 0~255
-4. Distill
+### 2.3 Model
 
-### 2.3 Model #TODO
+Mainly 2 types models to do the binary classification:
 
-2 models worth trying:
+- `1DCNN`: 1-D CNN, with 2 conv layers and 2 fc layers (given that the temporal data has 1-D translational invariance)
+- `MLP`: 3 fc layers
 
-- Adapting models from the vanilla Data Distillation paper
-- Adapting models (random NN) from DD by Matching Features
+### 2.4 Experiments
 
-### 2.4 Experiments #TODO
+#### 2.4.1 Model capacity verification
 
+Training setup:
+
+- lr = 0.001
+- Optimizer = Adam
+- Epoch = 100
+- Data = unbalanced
+
+On both models, test loss stops to decrease within 3 epochs, and then rise all the way up, which points to **severe overfitting**.
+
+Pick the best performing epoch, generate a classfication report, on a **balanced test set**:
+
+1DCNN:
+
+<img src="assets/image-20231101000912364.png" alt="image-20231101000912364" style="zoom:50%;" />
+
+<img src="assets/image-20231101000928025.png" alt="image-20231101000928025" style="zoom:50%;" />
+
+MLP:
+
+<img src="assets/image-20231101001225836.png" alt="image-20231101001225836" style="zoom:50%;" />
+
+<img src="assets/image-20231101001203761.png" alt="image-20231101001203761" style="zoom:50%;" />

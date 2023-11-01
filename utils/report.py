@@ -34,7 +34,7 @@ def run_classificatoin_report(model, loader):
 
     # Plot the confusion matrix
     fig, ax = plt.subplots(figsize=(10, 10))
-    ConfusionMatrixDisplay(conf_matrix, display_labels=display_labels).plot(values_format='d', ax=ax)
+    ConfusionMatrixDisplay(conf_matrix, display_labels=display_labels).plot(cmap='bwr', values_format='d', ax=ax)
     plt.title('Confusion Matrix')
     plt.show()
 
