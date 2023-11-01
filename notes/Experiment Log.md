@@ -99,5 +99,9 @@ MLP:
 
 <img src="assets/image-20231101001203761.png" alt="image-20231101001203761" style="zoom:50%;" />
 
-After configuring `weight_decay` to Adam (which allows L2 regularaztion), the overfitting is postponed, but not improving the best performance on test set (loss ~0.27).
+##### Further moves
+
+- After configuring `weight_decay` to Adam (which allows L2 regularaztion), the overfitting is postponed, but not improving the best performance on test set (loss ~0.27)
+- After taking out mask columns from training data, performance is slightly better (loss ~0.26)
+- Also try training on balanced training set and evaluating on balanced test set (by under-sampling), 
 
