@@ -114,6 +114,17 @@ class IHMPreliminaryDatasetReal(Dataset):
             data_tensors.append(data_tensor)
             label_tensors.append(label_tensor)
         return torch.stack(data_tensors, dim=0), torch.stack(label_tensors, dim=0)
+    
+    def first_n_samples_from_class(self, n_samples, cls):
+        indices = [i for i, label in enumerate(self.labels) if label == cls]
+        sampled_indices = indices[:n_samples]
+        data_tensors = []
+        label_tensors = []
+        for i in sampled_indices:
+            data_tensor, label_tensor = self.__getitem__(i)
+            data_tensors.append(data_tensor)
+            label_tensors.append(label_tensor)
+        return torch.stack(data_tensors, dim=0), torch.stack(label_tensors, dim=0)
 
         
 

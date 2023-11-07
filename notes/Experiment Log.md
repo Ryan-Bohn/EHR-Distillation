@@ -104,8 +104,20 @@ MLP:
 ##### Further moves
 
 - After configuring `weight_decay` to Adam (which allows L2 regularaztion), the overfitting is postponed, but not improving the best performance on test set (loss ~0.27)
+
 - After taking out mask columns from training data, performance is slightly better (loss ~0.26)
-- Also try training on balanced training set and evaluating on balanced test set (by under-sampling),
+
+- Also tried **training on balanced training set** and **evaluating on balanced test set** (by under-sampling)
+
+  - Test acc is up to ~72%, which better than random guess for binary classification, but not impressive
+  - Still suffer from overfitting: test loss starts to rise at around epoch 3
+
+  <img src="assets/image-20231101024722821.png" alt="image-20231101024722821" style="zoom:50%;" />
+
+  <img src="assets/image-20231101024733469.png" alt="image-20231101024733469" style="zoom:50%;" />
+
+- Turn on mask again (with balance + mask), test acc is improved to ~75%
+- AUC-ROC for metric
 
 ##### Observation summary
 

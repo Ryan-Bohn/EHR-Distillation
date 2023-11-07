@@ -3,6 +3,9 @@ from torch.utils.data import DataLoader
 from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
 import matplotlib.pyplot as plt
 import numpy as np
+from sklearn.metrics import roc_auc_score
+from sklearn.preprocessing import label_binarize
+import torch.nn.functional as F
 
 
 def run_classificatoin_report(model, loader):
@@ -14,17 +17,17 @@ def run_classificatoin_report(model, loader):
     true_labels = []
     model_predictions = []
 
-    # No need for gradient computation here
+    model_scores = []  # To store the softmax scores for each class
+
     with torch.no_grad():
         for inputs, labels in loader:
-            # Forward pass
             outputs = model(inputs)
+            softmax_scores = F.softmax(outputs, dim=1)  # Apply softmax to convert logits to probabilities
+            _, predicted_classes = torch.max(softmax_scores, 1)
             
-            # Assuming the output of the model is a raw score for each class
-            # and we take the score of the positive class or the class with the highest score
-            _, predicted_classes = torch.max(outputs, 1)
-            
-            # Store true labels and predictions for evaluation
+            # Store the softmax scores for ROC AUC computation
+            model_scores.extend(softmax_scores.cpu().numpy())
+
             true_labels.extend(labels.numpy())
             model_predictions.extend(predicted_classes.numpy())
 
@@ -57,3 +60,14 @@ def run_classificatoin_report(model, loader):
     plt.ylabel('Score')
     plt.xticks(rotation=45)  # Rotate class names for better legibility
     plt.show()
+
+    # Ensure that there are more than two classes
+    if len(set(true_labels)) > 2:
+        true_labels_binarized = label_binarize(true_labels, classes=sorted(set(true_labels)))
+        roc_auc = roc_auc_score(true_labels_binarized, model_scores, multi_class='ovr', average='macro')
+    else:
+        # If there are only two classes, do not binarize
+        positive_class_scores = [score[1] for score in model_scores] # Use the scores for the positive class
+        roc_auc = roc_auc_score(true_labels, positive_class_scores)  
+
+    print(f'Macro AUC-ROC score: {roc_auc}')
