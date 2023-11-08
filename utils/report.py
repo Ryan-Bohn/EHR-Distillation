@@ -12,7 +12,7 @@ import pandas as pd
 def compute_roc_auc_score(model, loader):
     # Switch the model to evaluation mode
     model.eval()
-
+    device = next(model.parameters()).device
     # Initialize lists to store true labels and model predictions
     true_labels = []
     model_predictions = []
@@ -21,15 +21,15 @@ def compute_roc_auc_score(model, loader):
 
     with torch.no_grad():
         for inputs, labels in loader:
-            outputs = model(inputs)
+            outputs = model(inputs.to(device))
             softmax_scores = F.softmax(outputs, dim=1)  # Apply softmax to convert logits to probabilities
             _, predicted_classes = torch.max(softmax_scores, 1)
             
             # Store the softmax scores for ROC AUC computation
             model_scores.extend(softmax_scores.cpu().numpy())
 
-            true_labels.extend(labels.numpy())
-            model_predictions.extend(predicted_classes.numpy())
+            true_labels.extend(labels.cpu().numpy())
+            model_predictions.extend(predicted_classes.cpu().numpy())
 
     # Ensure that there are more than two classes
     if len(set(true_labels)) > 2:
