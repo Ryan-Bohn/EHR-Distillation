@@ -104,9 +104,12 @@ class IHMPreliminaryDatasetReal(Dataset):
         # load labels
         return data_tensor, torch.tensor(self.labels[idx], dtype=torch.long)
     
-    def random_sample_from_class(self, n_samples, cls):
+    def random_sample_from_class(self, n_samples, cls, no_duplicate=True):
         indices = [i for i, label in enumerate(self.labels) if label == cls]
-        sampled_indices = random.sample(indices, n_samples)
+        if no_duplicate:
+            sampled_indices = random.sample(indices, n_samples)
+        else:
+            sampled_indices = random.choices(indices, n_samples)
         data_tensors = []
         label_tensors = []
         for i in sampled_indices:

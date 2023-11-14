@@ -141,11 +141,17 @@ Evaluate by:
 
 ##### All latest experiment results
 
-| Model | Train set size        | Distillation Method | Settings                     | Eval on                      | AUROC  | Comment                                        |
-| ----- | --------------------- | ------------------- | ---------------------------- | ---------------------------- | ------ | ---------------------------------------------- |
-| 1DCNN | Original (15480+2424) | -                   | Optim=Adam, lr=1e-3, wd=1e-3 | Original test set (2862+375) | 0.8340 | Best performance occurs in the first 10 epochs |
-| MLP   | Original (15480+2424) | -                   | Optim=Adam, lr=1e-3, wd=1e-3 | Original test set (2862+375) | 0.8296 | Best performance occurs in the first 10 epochs |
-|       |                       |                     |                              |                              |        |                                                |
+| Model | Train set size        | Distillation method | Traini settings              | Eval on                      | AUROC         | Comment                                                      |
+| ----- | --------------------- | ------------------- | ---------------------------- | ---------------------------- | ------------- | ------------------------------------------------------------ |
+| 1DCNN | Original (15480+2424) | -                   | Optim=Adam, lr=1e-3, wd=1e-3 | Original test set (2862+375) | 0.8340        | Best performance (lowest eval loss) occurs in the first 5 epochs |
+| MLP   | Original (15480+2424) | -                   | Optim=Adam, lr=1e-3, wd=1e-3 | Original test set (2862+375) | 0.8296        | Best performance occurs in the first 5 epochs                |
+| 1DCNN | 20 (10+10)            | Random sample       | Optim=Adam, lr=1e-3, wd=1e-3 | Original test set (2862+375) | 0.6980 (avg4) | Best performance occurs in the first 5 epochs                |
+| MLP   | 20 (10+10)            | Random sample       | Optim=Adam, lr=1e-3, wd=1e-3 | Original test set (2862+375) | 0.7191 (avg4) | Best performance occurs in the first 5 epochs                |
+|       |                       |                     |                              |                              |               |                                                              |
+|       |                       |                     |                              |                              |               |                                                              |
+|       |                       |                     |                              |                              |               |                                                              |
+|       |                       |                     |                              |                              |               |                                                              |
+|       |                       |                     |                              |                              |               |                                                              |
 
 
 
