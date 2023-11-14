@@ -138,3 +138,14 @@ Evaluate by:
 ##### Vanilla method
 
 ![image-20231108133458150](assets/image-20231108133458150.png)
+
+##### All latest experiment results
+
+| Model | Train set size        | Distillation Method | Settings                     | Eval on                      | AUROC  | Comment                                        |
+| ----- | --------------------- | ------------------- | ---------------------------- | ---------------------------- | ------ | ---------------------------------------------- |
+| 1DCNN | Original (15480+2424) | -                   | Optim=Adam, lr=1e-3, wd=1e-3 | Original test set (2862+375) | 0.8340 | Best performance occurs in the first 10 epochs |
+| MLP   | Original (15480+2424) | -                   | Optim=Adam, lr=1e-3, wd=1e-3 | Original test set (2862+375) | 0.8296 | Best performance occurs in the first 10 epochs |
+|       |                       |                     |                              |                              |        |                                                |
+
+
+
