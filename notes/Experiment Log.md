@@ -135,7 +135,6 @@ Evaluate by:
 - Compare both models' performance
 - Result: syn model isn't learning anything, acc near 0.5 (random guess)
 
-##### Next move
+##### Vanilla method
 
-Vanilla dataset distillation ("train on synth, val on real, backward loss all the way to the synth data"): working on this
-
+![image-20231108133458150](assets/image-20231108133458150.png)
