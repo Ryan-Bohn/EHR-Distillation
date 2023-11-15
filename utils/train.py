@@ -1,9 +1,12 @@
 import numpy as np
 
-def epoch(mode, dataloader, net, criterion, optimizer=None, device="cpu"):
+def epoch(mode, dataloader, net, criterion, optimizer=None, device=None):
     loss_avg, acc_avg, num_exp = 0, 0, 0
 
-    net = net.to(device)
+    if device is None:
+        device = next(net.parameters()).device
+    else:
+        net = net.to(device)
 
     if mode == 'train':
         net.train()
