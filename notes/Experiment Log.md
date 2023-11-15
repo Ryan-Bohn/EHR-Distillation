@@ -155,3 +155,6 @@ Evaluate by:
 
 
 
+Implement gradient matching for cuda
+
+Run experiment on it
