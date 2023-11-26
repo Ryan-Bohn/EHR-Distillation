@@ -141,20 +141,22 @@ Evaluate by:
 
 ##### All latest experiment results
 
-| Model | Train set size        | Distillation method | Traini settings              | Eval on                      | AUROC         | Comment                                                      |
-| ----- | --------------------- | ------------------- | ---------------------------- | ---------------------------- | ------------- | ------------------------------------------------------------ |
-| 1DCNN | Original (15480+2424) | -                   | Optim=Adam, lr=1e-3, wd=1e-3 | Original test set (2862+375) | 0.8340        | Best performance (lowest eval loss) occurs in the first 5 epochs |
-| MLP   | Original (15480+2424) | -                   | Optim=Adam, lr=1e-3, wd=1e-3 | Original test set (2862+375) | 0.8296        | Best performance occurs in the first 5 epochs                |
-| 1DCNN | 20 (10+10)            | Random sample       | Optim=Adam, lr=1e-3, wd=1e-3 | Original test set (2862+375) | 0.6980 (avg4) | Best performance occurs in the first 5 epochs                |
-| MLP   | 20 (10+10)            | Random sample       | Optim=Adam, lr=1e-3, wd=1e-3 | Original test set (2862+375) | 0.7191 (avg4) | Best performance occurs in the first 5 epochs                |
-|       |                       |                     |                              |                              |               |                                                              |
-|       |                       |                     |                              |                              |               |                                                              |
-|       |                       |                     |                              |                              |               |                                                              |
-|       |                       |                     |                              |                              |               |                                                              |
-|       |                       |                     |                              |                              |               |                                                              |
+| Model | Train set size        | Distillation method | Traini settings                         | Eval on                      | AUROC         | Comment                                                      |
+| ----- | --------------------- | ------------------- | --------------------------------------- | ---------------------------- | ------------- | ------------------------------------------------------------ |
+| 1DCNN | Original (15480+2424) | -                   | Optim=Adam, lr=1e-3, wd=1e-3            | Original test set (2862+375) | 0.8340        | Best performance (lowest eval loss) occurs in the first 5 epochs |
+| MLP   | Original (15480+2424) | -                   | Optim=Adam, lr=1e-3, wd=1e-3            | Original test set (2862+375) | 0.8296        | Best performance occurs in the first 5 epochs                |
+| 1DCNN | 20 (10+10)            | Random sample       | Optim=Adam, lr=1e-3, wd=1e-3            | Original test set (2862+375) | 0.6980 (avg4) | Best performance occurs in the first 5 epochs                |
+| MLP   | 20 (10+10)            | Random sample       | Optim=Adam, lr=1e-3, wd=1e-3            | Original test set (2862+375) | 0.7191 (avg4) | Best performance occurs in the first 5 epochs                |
+| 1DCNN | 100(50+50)            | Random sample       | Optim=Adam, lr=1e-3, wd=1e-3            | Original test set (2862+375) | 0.7539 (avg4) | Best performance occurs in the first 10 epochs               |
+| MLP   | 100(50+50)            | Random sample       | Optim=Adam, lr=1e-3, wd=1e-3            | Original test set (2862+375) | 0.7646 (avg4) | Best performance occurs in the first 10 epochs               |
+| 1DCNN | 500(250+250)          | Random sample       | Optim=Adam, lr=1e-3, wd=1e-3            | Original test set (2862+375) | 0.7693 (avg4) | Best performance occurs in the first 20 epochs               |
+| MLP   | 500(250+250)          | Random sample       | Optim=Adam, lr=1e-3, wd=1e-3            | Original test set (2862+375) | 0.7817 (avg4) | Best performance occurs in the first 20 epochs               |
+| 1DCNN | 20(10+10)             | Vanilla             |                                         | Original test set (2862+375) | 0.5421        |                                                              |
+| 1DCNN | 20(10+10)             | Matching gradient   |                                         |                              |               |                                                              |
+| 1DCNN | 100 (50 + 50)         | Matching gradient   | ol=10, il=50, lr_data=1e-3, lr_net=1e-3 | Original test set (2862+375) | 0.5353        |                                                              |
+|       |                       |                     |                                         |                              |               |                                                              |
+|       |                       |                     |                                         |                              |               |                                                              |
+|       |                       |                     |                                         |                              |               |                                                              |
+|       |                       |                     |                                         |                              |               |                                                              |
 
 
-
-Implement gradient matching for cuda
-
-Run experiment on it
