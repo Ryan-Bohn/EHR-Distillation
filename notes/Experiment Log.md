@@ -214,12 +214,12 @@ Conclusions:
 Settings:
 
 - **NUM_SAMPLES_PER_CLS = 10**
-- **NUM_OPTIM_IT = 10000**
+- NUM_OPTIM_IT = 10000
 - EVAL_INTERVAL = 100
 - INIT_LR = 0.001
 - MINIMUM_LR = 1e-5
 - STEP_SIZE = 0.001
-- INIT_WEIGHTS_DISTR = "kaiming"
+- **INIT_WEIGHTS_DISTR = "kaiming"**
 - **FIX_INIT_WEIGHTS = False**
 - NUM_SAMPLED_NETS_TRAIN = 16
 - NUM_SAMPLED_NETS_EVAL = 4
@@ -253,3 +253,20 @@ Conclusions:
 - We are seeing recognizable patterns in the distilled images! (Look at the '1's)
 - Training isn't (computational) efficient and full, but it is working! Perhaps more iterations is needed
 - Will it benefit if we start from random real samples?
+
+##### Exp.2 Vanilla method on MNIST (random kaiming init, init syn img from real samples, more it)
+
+Settings:
+
+- **NUM_SAMPLES_PER_CLS = 10**
+- **FROM_REAL_SAMPLES = True**
+- **NUM_OPTIM_IT = 100000**
+- **EVAL_INTERVAL = 1000**
+- INIT_LR = 0.001
+- MINIMUM_LR = 1e-5
+- STEP_SIZE = 0.001
+- **INIT_WEIGHTS_DISTR = "kaiming"**
+- **FIX_INIT_WEIGHTS = False**
+- NUM_SAMPLED_NETS_TRAIN = 16
+- NUM_SAMPLED_NETS_EVAL = 4
+- NUM_SAMPLES_PER_CLS = 10
