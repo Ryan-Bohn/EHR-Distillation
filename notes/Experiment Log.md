@@ -152,11 +152,104 @@ Evaluate by:
 | 1DCNN | 500(250+250)          | Random sample       | Optim=Adam, lr=1e-3, wd=1e-3            | Original test set (2862+375) | 0.7693 (avg4) | Best performance occurs in the first 20 epochs               |
 | MLP   | 500(250+250)          | Random sample       | Optim=Adam, lr=1e-3, wd=1e-3            | Original test set (2862+375) | 0.7817 (avg4) | Best performance occurs in the first 20 epochs               |
 | 1DCNN | 20(10+10)             | Vanilla             |                                         | Original test set (2862+375) | 0.5421        |                                                              |
-| 1DCNN | 20(10+10)             | Matching gradient   |                                         |                              |               |                                                              |
+| 1DCNN | 20(10+10)             | Matching gradient   | ol=10, il=50, lr_data=1e-3, lr_net=1e-3 | Original test set (2862+375) | 0.5177        |                                                              |
 | 1DCNN | 100 (50 + 50)         | Matching gradient   | ol=10, il=50, lr_data=1e-3, lr_net=1e-3 | Original test set (2862+375) | 0.5353        |                                                              |
 |       |                       |                     |                                         |                              |               |                                                              |
 |       |                       |                     |                                         |                              |               |                                                              |
 |       |                       |                     |                                         |                              |               |                                                              |
 |       |                       |                     |                                         |                              |               |                                                              |
 
+#### 2.4.3 Methodology verification on image distillation
 
+To verify the distillation methods as well as to grasp a basic idea of what a successful distilliation process will look like, adjust the codes for image distillation and test on MNIST / CIFAR10.
+
+##### Exp.1 Vanilla method on MNIST (fixed init)
+
+Settings:
+
+- **NUM_SAMPLES_PER_CLS = 10**
+- **NUM_OPTIM_IT = 10000**
+- EVAL_INTERVAL = 100
+- INIT_LR = 0.001
+- MINIMUM_LR = 1e-5
+- STEP_SIZE = 0.001
+- INIT_WEIGHTS_DISTR = "kaiming"
+- **FIX_INIT_WEIGHTS = True**
+- NUM_SAMPLED_NETS_TRAIN = 16
+- NUM_SAMPLED_NETS_EVAL = 4
+- NUM_SAMPLES_PER_CLS = 10
+
+Original randomly initialized synthetic dataset:
+
+![image-20231127000802340](assets/image-20231127000802340.png)
+
+Synthetic dataset when training terminates:
+
+![image-20231127000842898](assets/image-20231127000842898.png)
+
+![image-20231127024526613](assets/image-20231127024526613.png)
+
+![image-20231127034432328](assets/image-20231127034432328.png)
+
+Training curves:
+
+![image-20231127024545368](assets/image-20231127024545368.png)
+
+Evaluating on training set and test sets (train the model for one epoch using synthetic data and learnt LR):
+
+|                   | Train set  | Test set   |
+| ----------------- | ---------- | ---------- |
+| Accuracy (before) | 0.0273     | 0.0225     |
+| Accuracy (after)  | **0.9371** | **0.9424** |
+
+Conclusions:
+
+- Possible reasons why previous experiments (on EHR) was not working:
+  - Distilled data was not fully trained
+- Fixed initialization results in noisy, unrecognizable distilled images
+- Distilled images' pixels are not bounded within [-1, 1]
+
+##### Exp.2 Vanilla method on MNIST (random kaiming init)
+
+Settings:
+
+- **NUM_SAMPLES_PER_CLS = 10**
+- **NUM_OPTIM_IT = 10000**
+- EVAL_INTERVAL = 100
+- INIT_LR = 0.001
+- MINIMUM_LR = 1e-5
+- STEP_SIZE = 0.001
+- INIT_WEIGHTS_DISTR = "kaiming"
+- **FIX_INIT_WEIGHTS = False**
+- NUM_SAMPLED_NETS_TRAIN = 16
+- NUM_SAMPLED_NETS_EVAL = 4
+- NUM_SAMPLES_PER_CLS = 10
+
+Original randomly initialized synthetic dataset:
+
+![image-20231127023435949](assets/image-20231127023435949.png)
+
+Synthetic dataset when training terminates:
+
+![image-20231127023420052](assets/image-20231127023420052.png)
+
+![image-20231127035044392](assets/image-20231127035044392.png)
+
+![image-20231127035100475](assets/image-20231127035100475.png)
+
+Training curves:
+
+![image-20231127035112004](assets/image-20231127035112004.png)
+
+Evaluating on training set and test sets (train the model for one epoch using synthetic data and learnt LR):
+
+|                   | Train set  | Test set   |
+| ----------------- | ---------- | ---------- |
+| Accuracy (before) | 0.0989     | 0.0979     |
+| Accuracy (after)  | **0.1145** | **0.1136** |
+
+Conclusions:
+
+- We are seeing recognizable patterns in the distilled images! (Look at the '1's)
+- Training isn't (computational) efficient and full, but it is working! Perhaps more iterations is needed
+- Will it benefit if we start from random real samples?
