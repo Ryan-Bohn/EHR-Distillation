@@ -254,7 +254,7 @@ Conclusions:
 - Training isn't (computational) efficient and full, but it is working! Perhaps more iterations is needed
 - Will it benefit if we start from random real samples?
 
-##### Exp.2 Vanilla method on MNIST (random kaiming init, init syn img from real samples, more it)
+##### Exp.3 Vanilla method on MNIST (random kaiming init, init syn img from real samples, more it)
 
 Settings:
 
@@ -270,3 +270,38 @@ Settings:
 - NUM_SAMPLED_NETS_TRAIN = 16
 - NUM_SAMPLED_NETS_EVAL = 4
 - NUM_SAMPLES_PER_CLS = 10
+
+Original randomly initialized synthetic dataset:
+
+![image-20231128005844742](assets/image-20231128005844742.png)
+
+Synthetic dataset when training terminates (remoter cluster session timed-out when it=31000...):
+
+![image-20231128005940673](assets/image-20231128005940673.png)
+
+![image-20231128010200623](assets/image-20231128010200623.png)
+
+![image-20231128010214239](assets/image-20231128010214239.png)
+
+Training curves:
+
+![image-20231128010251634](assets/image-20231128010251634.png)
+
+Evaluating on training set and test sets (train the model for one epoch using synthetic data and learnt LR):
+
+|                   | Train set  | Test set   |
+| ----------------- | ---------- | ---------- |
+| Accuracy (before) | 0.0910     | 0.0910     |
+| Accuracy (after)  | **0.1550** | **0.1559** |
+
+Conclusions:
+
+- Patterns are fading away (look at the pixel distribution, values very close to 0 are dominant). Why is that?
+
+  This is what a initial synthetic dataset randomly sampled from real images will look like:
+
+  ![image-20231128010926308](assets/image-20231128010926308.png)
+
+  Does that mean when pixels are 0, it won't be updated any more? **NO: the synthetic data will only be frozen if one of the images is all 0, making the optimization step nilpotent**
+
+- Training isn't efficient
