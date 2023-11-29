@@ -159,11 +159,11 @@ Evaluate by:
 |       |                       |                     |                                         |                              |               |                                                              |
 |       |                       |                     |                                         |                              |               |                                                              |
 
-#### 2.4.3 Methodology verification on image distillation
+#### 2.4.3 Methodology verification on image distillation (11.15~)
 
 To verify the distillation methods as well as to grasp a basic idea of what a successful distilliation process will look like, adjust the codes for image distillation and test on MNIST / CIFAR10.
 
-##### Exp.1 Vanilla method on MNIST (fixed init)
+##### Exp. 1 Vanilla method on MNIST (fixed init)
 
 Settings:
 
@@ -209,7 +209,7 @@ Conclusions:
 - Fixed initialization results in noisy, unrecognizable distilled images
 - Distilled images' pixels are not bounded within [-1, 1]
 
-##### Exp.2 Vanilla method on MNIST (random kaiming init)
+##### Exp. 2 Vanilla method on MNIST (random kaiming init)
 
 Settings:
 
@@ -254,7 +254,7 @@ Conclusions:
 - Training isn't (computational) efficient and full, but it is working! Perhaps more iterations is needed
 - Will it benefit if we start from random real samples?
 
-##### Exp.3 Vanilla method on MNIST (random kaiming init, init syn img from real samples, more it)
+##### Exp. 3 Vanilla method on MNIST (random kaiming init, init syn img from real samples, more it)
 
 Settings:
 
@@ -275,7 +275,7 @@ Original randomly initialized synthetic dataset:
 
 ![image-20231128005844742](assets/image-20231128005844742.png)
 
-Synthetic dataset when training terminates (remoter cluster session timed-out when it=31000...):
+Synthetic dataset when training terminates (remote cluster session timed-out when it=31000...):
 
 ![image-20231128005940673](assets/image-20231128005940673.png)
 
@@ -302,6 +302,61 @@ Conclusions:
 
   ![image-20231128010926308](assets/image-20231128010926308.png)
 
-  Does that mean when pixels are 0, it won't be updated any more? **NO: the synthetic data will only be frozen if one of the images is all 0, making the optimization step nilpotent**
+  Does that mean when pixels are 0, it won't be updated any more? **NO: the synthetic data will only be "frozen" if one of the images is all 0, making the optimization step nilpotent**
 
 - Training isn't efficient
+
+##### Exp. 4 Gradient matching on MNIST
+
+Settings:
+
+- model: LeNet (originally ResNet)
+- NUM_OUTER_LOOPS = 1000
+- EVAL_INTERVAL = 20
+- EVAL_NUM_EPOCHS = 50
+- NUM_SAMPLED_NETS_EVAL = 4
+- **LR_DATA = 0.01** # original: 0.1
+  - Note that in original paper (and code) there's no clamping on synthetic image pixels, setting this too large will make the pixel values explode really quickly to NaN
+  - To avoid such explosion, I clamp the synthetic image pixels to range [-1, 1] after every iteration
+- LR_NET = 0.01 # original: 0.01
+- NUM_INNER_LOOPS = 10
+- NUM_UPDT_STEPS_DATA = 1 # s_S
+- NUM_UPDT_STEPS_NET = 50 # s_theta
+- BATCH_SIZE_REAL = 256
+- BATCH_SIZE_SYN = 256
+- INIT_WEIGHTS_DISTR = "kaiming"
+- FIX_INIT_WEIGHTS = False
+
+Original randomly initialized synthetic dataset:
+
+![image-20231129002239643](assets/image-20231129002239643.png)
+
+Synthetic dataset when training terminates:
+
+![image-20231129002321993](assets/image-20231129002321993.png)
+
+![image-20231129002736547](assets/image-20231129002736547.png)
+
+![image-20231129003324742](assets/image-20231129003324742.png)
+
+Training curves:
+
+![image-20231129003051127](assets/image-20231129003051127.png)
+
+Evaluating on training set and test sets (train the model for as many as possible epochs using synthetic data and a good optimizer, see the training curves):
+
+|                   | Train set  | Test set   |
+| ----------------- | ---------- | ---------- |
+| Accuracy (before) | 0.1016     | 0.1010     |
+| Accuracy (after)  | **0.2342** | **0.2387** |
+
+![image-20231129005719334](assets/image-20231129005719334.png)
+
+Conclusions:
+
+- This seems to be a promising method, with not bad training complexity, and visible / recognizable patterns in results
+- However, how the original authors dealt with "pixel value explosion" is not clear
+- I observed very rapid pixel value explosion, and from the very beginning stage of the training, the optimization seems to stop
+  - Maybe it's because I used a relatively simple network (LeNet instead of ResNet)
+- Need more experiments to get this working!
+
