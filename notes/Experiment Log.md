@@ -360,3 +360,6 @@ Conclusions:
   - Maybe it's because I used a relatively simple network (LeNet instead of ResNet)
 - Need more experiments to get this working!
 
+Next step:
+
+Replicate gradient matching codes, see the actual training process, run distillation over binary classification
