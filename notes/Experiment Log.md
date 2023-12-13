@@ -380,7 +380,7 @@ And ran a quick test, the code finally got to be working as expected!
 
 Optimization iteration 700, eval acc (train): **0.8380**, eval acc (test): **0.8465** (**no augmentation**)
 
-##### Exp: distill MNIST, 10 samples per class, from noise, using original paper hyperparams
+##### Exp 1: distill MNIST, 10 samples per class, from noise, using original paper hyperparams
 
 Training curve:
 
@@ -407,3 +407,6 @@ Evaluating the distilled data:
 
   - Eval acc (train): **0.8831**
   - Eval acc (test): **0.8935**
+
+##### Exp 2: same as before, but group up labels by odd/even
+
