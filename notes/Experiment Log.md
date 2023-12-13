@@ -437,3 +437,47 @@ Evaluating the distilled data:
 
   - Eval acc (train): **0.8424**
   - Eval acc (test): **0.8467**
+
+##### Exp 3: transfer back to EHR DD
+
+Visualize timeseries features (no denormalization, just clip to [0, 1]):
+
+![image-20231213073654575](assets/image-20231213073654575.png)
+
+![image-20231213073715330](assets/image-20231213073715330.png)
+
+Random initialize 50 samples per class:
+
+![image-20231213073743305](assets/image-20231213073743305.png)
+
+![image-20231213073753983](assets/image-20231213073753983.png)
+
+After 1000 iterations of optimization:
+
+![image-20231213073605315](assets/image-20231213073605315.png)
+
+Training curve:
+
+![image-20231213074731893](assets/image-20231213074731893.png)
+
+Best result (it=100):
+
+![image-20231213074813264](assets/image-20231213074813264.png)
+
+![image-20231213074854103](assets/image-20231213074854103.png)
+
+Evaluating the distilled data:
+
+- Before training:
+
+  - Eval AUROC score (train): 0.5293
+  - Eval AUROC score (test): 0.5245
+
+- Training:
+
+  ![image-20231213075902852](assets/image-20231213075902852.png)
+
+- After Training:
+
+  - Eval acc (train): **0.7954**
+  - Eval acc (test): **0.7937**
