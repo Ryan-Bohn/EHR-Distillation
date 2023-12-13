@@ -3,13 +3,13 @@ import re
 import glob
 import random
 from collections import Counter
+import pickle
 
 import torch
 from torch.utils.data import Dataset
 import torch.nn.functional as F
 import pandas as pd
 import numpy as np
-
 
 class TensorDataset(Dataset):
     def __init__(self, x: torch.Tensor, y: torch.Tensor):
@@ -63,9 +63,25 @@ class IHMPreliminaryDatasetReal(Dataset):
         if load_to_ram:
             self.episodes = []
             print("Loading dataset to RAM...")
-            for i, path in enumerate(self.episode_paths):
-                data = pd.read_csv(path, index_col=0)
-                self.episodes.append(data)
+            unified_episodes_path = os.path.join(dir, "all_episodes.pkl")
+            if os.path.exists(unified_episodes_path):
+                # Loading the dictionary from the pickle file
+                print(f"Found unified episodes file at {unified_episodes_path}, skipping individuals...")
+                with open(unified_episodes_path, 'rb') as file:
+                    episodes_dict = pickle.load(file)
+                for i, path in enumerate(self.episode_paths):
+                    re_match = re.match(r"(\d+)_episode(\d+)_clean.csv", os.path.basename(path))
+                    if not re_match:
+                        raise ValueError(f"Error parsing csv file: {path}")
+                    subject_id, episode_number = map(int, re_match.groups())
+                    key = f"{subject_id}_episode{episode_number}"
+                    if key not in episodes_dict.keys():
+                        raise KeyError(f"Mapping key: {key} not foound in unified episodes!")
+                    self.episodes.append(episodes_dict[key])
+            else:
+                for i, path in enumerate(self.episode_paths):
+                    data = pd.read_csv(path, index_col=0)
+                    self.episodes.append(data)
 
         if balance:
             self.under_sample()

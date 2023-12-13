@@ -5,6 +5,7 @@ import numpy as np
 from glob import glob
 import re
 from tqdm import tqdm
+import pickle
 
 # mimic3 benchmark paper statistics
 mimic3_benchmark_variable_list = [
@@ -189,3 +190,28 @@ def preprocess_ihm_timeseries_files(ts_dir, output_dir, feature_dict, normal_val
     labels_df = pd.read_csv(labels_path)
     labels_df['stay'] = labels_df['stay'].str.replace('_timeseries.csv', '')
     labels_df.to_csv(os.path.join(output_dir, "labels.csv"), index=False)
+
+def unify_ihm_episodes(dir):
+    """
+    Read all episodes as dataframes, store all in a dictionary, as a pkl file
+    Key is "<subject_id>_episode<episode_number>"
+    """
+    episode_paths = glob(os.path.join(dir, "*_episode*_clean.csv"))
+    labels_dict = pd.read_csv(os.path.join(dir, "labels.csv"), index_col=0)["y_true"].to_dict()
+    episodes_dict = {}
+    print(f"Unifying episodes under {dir}")
+    for i, path in enumerate(episode_paths):
+        re_match = re.match(r"(\d+)_episode(\d+)_clean.csv", os.path.basename(path))
+        if not re_match:
+            raise ValueError(f"Error parsing csv file: {path}")
+        subject_id, episode_number = map(int, re_match.groups())
+        key = f"{subject_id}_episode{episode_number}"
+        if key not in labels_dict.keys():
+            raise KeyError(f"Mapping key not foound: {key}")
+        data = pd.read_csv(path, index_col=0)
+        episodes_dict[key] = data
+    # Pickling the dictionary
+    pkl_path = os.path.join(dir, "all_episodes.pkl")
+    with open(pkl_path, 'wb') as file:
+        pickle.dump(episodes_dict, file)
+        print(f"Unified episodes saved as {pkl_path}")
