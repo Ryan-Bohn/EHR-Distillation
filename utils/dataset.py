@@ -140,7 +140,10 @@ class IHMPreliminaryDatasetReal(Dataset):
         # load labels
         return data_tensor, torch.tensor(self.labels[idx], dtype=torch.long)
     
-    def random_sample_from_class(self, n_samples, cls, no_duplicate=True):
+    def random_sample_from_class(self, n_samples, cls, no_duplicate=True, return_as_tensor=False):
+        """
+        Default return value: (list(samples), list(labels))
+        """
         indices = [i for i, label in enumerate(self.labels) if label == cls]
         if no_duplicate:
             sampled_indices = random.sample(indices, n_samples)
@@ -152,9 +155,12 @@ class IHMPreliminaryDatasetReal(Dataset):
             data_tensor, label_tensor = self.__getitem__(i)
             data_tensors.append(data_tensor)
             label_tensors.append(label_tensor)
-        return torch.stack(data_tensors, dim=0), torch.stack(label_tensors, dim=0)
+        if return_as_tensor:
+            return torch.stack(data_tensors, dim=0), torch.stack(label_tensors, dim=0)
+        else:
+            return data_tensors, label_tensors
     
-    def first_n_samples_from_class(self, n_samples, cls):
+    def first_n_samples_from_class(self, n_samples, cls, return_as_tensor=False):
         indices = [i for i, label in enumerate(self.labels) if label == cls]
         sampled_indices = indices[:n_samples]
         data_tensors = []
@@ -163,7 +169,10 @@ class IHMPreliminaryDatasetReal(Dataset):
             data_tensor, label_tensor = self.__getitem__(i)
             data_tensors.append(data_tensor)
             label_tensors.append(label_tensor)
-        return torch.stack(data_tensors, dim=0), torch.stack(label_tensors, dim=0)
+        if return_as_tensor:
+            return torch.stack(data_tensors, dim=0), torch.stack(label_tensors, dim=0)
+        else:
+            return data_tensors, label_tensors
 
         
 
