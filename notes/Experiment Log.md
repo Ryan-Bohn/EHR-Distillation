@@ -410,3 +410,30 @@ Evaluating the distilled data:
 
 ##### Exp 2: same as before, but group up labels by odd/even
 
+![image-20231213014956172](assets/image-20231213014956172.png)
+
+Training curve:
+
+![image-20231213015449248](assets/image-20231213015449248.png)
+
+Best result (it=900)
+
+![image-20231213020353173](assets/image-20231213020353173.png)
+
+![image-20231213015456790](assets/image-20231213015456790.png)
+
+Evaluating the distilled data:
+
+- Before training:
+
+  - Eval acc (train): 0.4999
+  - Eval acc (test): 0.5001
+
+- Training:
+
+  ![image-20231213020335305](assets/image-20231213020335305.png)
+
+- After Training:
+
+  - Eval acc (train): **0.8424**
+  - Eval acc (test): **0.8467**

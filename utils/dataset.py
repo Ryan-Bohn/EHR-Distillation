@@ -28,7 +28,7 @@ def tensor_to_preliminary_timeseries(x: torch.Tensor):
 
 class IHMPreliminaryDatasetReal(Dataset):
     # load cleaned mimic3benchmark preprocessed data as dataset
-    def __init__(self, dir, avg_dict, std_dict, numcls_dict, dstype="train", balance=False, mask=True):
+    def __init__(self, dir, avg_dict, std_dict, numcls_dict, dstype="train", balance=False, mask=True, load_to_ram=True):
         """
         dir: directory of all cleaned timeseries csvs (<subject_id>_episode<#>_clean.csv) and label file (labels.csv)
         dstype: "train" or "test" 
@@ -36,6 +36,7 @@ class IHMPreliminaryDatasetReal(Dataset):
         numcls_dict: stating how many classes are there for categorical columns only
         balance: set this to be True will make every label equally distributed
         mask: set this to false will take out the mask columns
+        load_to_ram: store all data in ram if set
         """
         self.dir = dir
         self.dstype = dstype
@@ -47,6 +48,7 @@ class IHMPreliminaryDatasetReal(Dataset):
         labels_dict = pd.read_csv(os.path.join(dir, "labels.csv"), index_col=0)["y_true"].to_dict()
         # make list of labels corresponding to episode_paths
         self.labels = []
+        print("Joining timeseries episodes with label...")
         for i, path in enumerate(self.episode_paths):
             re_match = re.match(r"(\d+)_episode(\d+)_clean.csv", os.path.basename(path))
             if not re_match:
@@ -56,6 +58,15 @@ class IHMPreliminaryDatasetReal(Dataset):
             if key not in labels_dict.keys():
                 raise KeyError(f"Mapping key not foound: {key}")
             self.labels.append(labels_dict[key])
+        
+        self.episodes = None
+        if load_to_ram:
+            self.episodes = []
+            print("Loading dataset to RAM...")
+            for i, path in enumerate(self.episode_paths):
+                data = pd.read_csv(path, index_col=0)
+                self.episodes.append(data)
+
         if balance:
             self.under_sample()
 
@@ -75,17 +86,26 @@ class IHMPreliminaryDatasetReal(Dataset):
 
         # Update the episode paths and labels with the balanced dataset
         self.episode_paths = [self.episode_paths[idx] for idx in all_indices_to_keep]
+        if self.episodes is not None:
+            self.episodes = [self.episodes[idx] for idx in all_indices_to_keep]
         self.labels = [self.labels[idx] for idx in all_indices_to_keep]
    
     def __len__(self):
         return len(self.episode_paths)
     
+    def _get_df_by_idx(self, idx):
+        if self.episodes is not None:
+            return self.episodes[idx]
+        else:
+            # get an episode file by idx
+            file_path = self.episode_paths[idx]
+            # read csv and return dataframe
+            data = pd.read_csv(file_path, index_col=0)
+            return data
+    
     def __getitem__(self, idx):
-        # get an episode file by idx
-        file_path = self.episode_paths[idx]
-
         # read csv, normalize, expand categorical features to one-hot, and form a tensor sized num_features * num_time_steps
-        data = pd.read_csv(file_path, index_col=0)
+        data = self._get_df_by_idx(idx)
         processed_data = []
         for col_name, col_data in data.items():
             if "mask" in col_name: # mask column, do no processing

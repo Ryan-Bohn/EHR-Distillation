@@ -55,4 +55,3 @@ class IHMPreliminary1DCNN(nn.Module):
         x = F.relu(self.fc1(x))
         x = self.fc2(x)  # No activation here as CrossEntropyLoss applies softmax internally
         return x
-    
