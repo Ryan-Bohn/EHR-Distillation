@@ -363,3 +363,47 @@ Conclusions:
 Next step:
 
 Replicate gradient matching codes, see the actual training process, run distillation over binary classification
+
+#### 2.4.4 DC by Gmatch Replicate and Transfer Back to EHR (12.6~)
+
+Following every detail in [original paper](https://github.com/VICO-UoE/DatasetCondensation/tree/master), did these minor tweaks on my replicate code:
+
+- MNIST mean and std
+- LeNet padding
+- get grad_real by list-ify a set (remove possible duplicates), instead of directly enumerate
+- match loss calculation
+- no clamp
+
+And ran a quick test, the code finally got to be working as expected!
+
+![image-20231212224607907](assets/image-20231212224607907.png)
+
+Optimization iteration 700, eval acc (train): **0.8380**, eval acc (test): **0.8465** (**no augmentation**)
+
+##### Exp: distill MNIST, 10 samples per class, from noise, using original paper hyperparams
+
+Training curve:
+
+![image-20231212235101382](assets/image-20231212235101382.png)
+
+Best result (it=600)
+
+![image-20231212235132428](assets/image-20231212235132428.png)
+
+![image-20231212235235066](assets/image-20231212235235066.png)
+
+Evaluating the distilled data:
+
+- Before training:
+
+  - Eval acc (train): 0.1125
+  - Eval acc (test): 0.1110
+
+- Training:
+
+  ![image-20231212235316469](assets/image-20231212235316469.png)
+
+- After Training:
+
+  - Eval acc (train): **0.8831**
+  - Eval acc (test): **0.8935**
