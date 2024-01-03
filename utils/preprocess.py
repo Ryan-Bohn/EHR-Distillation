@@ -126,7 +126,7 @@ def preprocess_ihm_timeseires(df: pd.DataFrame, feature_dict, normal_value_dict,
     1. Get rid of anomalies;
     2. Resample;
     3. Impute;
-    4. Normalize
+    4. Normalize is not here, it's done within dataset class
     Save preprocessed data as new csv "<original_name>_clean.csv".
 
     Resample rate's unit is hour.
@@ -224,7 +224,7 @@ def join_multitask_labels(cleaned_ihm_ts_dir, raw_multitask_ts_dir, output_dir):
         It's essentially a dictionary, with keys being f"{subject_id}_episode{episode_number}" and values being another dictionary:
             - "ts": pandas frame of the cleaned (and resampled) timeseries
             - "ihm": 0 / 1
-            - "lof": a float in hour
+            - "los": a float in hour
             - "pheno": a list of 0 / 1
     """
     ihm_labels = pd.read_csv(os.path.join(cleaned_ihm_ts_dir, "labels.csv"), index_col=0)["y_true"].to_dict()
@@ -241,14 +241,14 @@ def join_multitask_labels(cleaned_ihm_ts_dir, raw_multitask_ts_dir, output_dir):
         if key in all_episodes.keys() and raw_key in multitask_labels_raw.index:
             ts = all_episodes[key]
             ihm = ihm_labels[key]
-            lof = float(multitask_labels_raw.loc[raw_key, "length of stay"])
+            los = float(multitask_labels_raw.loc[raw_key, "length of stay"])
             pheno = multitask_labels_raw.loc[raw_key, "phenotyping task (labels)"]
             pheno = pheno.split(';')
             pheno = [int(i) for i in pheno]
             multitask_dict[key] = {
                 "ts": ts,
                 "ihm": ihm,
-                "lof": lof,
+                "los": los,
                 "pheno": pheno,
             }
         else:
