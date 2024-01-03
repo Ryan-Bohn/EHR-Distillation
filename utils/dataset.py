@@ -146,9 +146,9 @@ class IHMPreliminaryDatasetReal(Dataset):
         """
         indices = [i for i, label in enumerate(self.labels) if label == cls]
         if no_duplicate:
-            sampled_indices = random.sample(indices, n_samples)
+            sampled_indices = random.sample(indices, k=n_samples)
         else:
-            sampled_indices = random.choices(indices, n_samples)
+            sampled_indices = random.choices(indices, k=n_samples)
         data_tensors = []
         label_tensors = []
         for i in sampled_indices:
@@ -250,9 +250,9 @@ class MultitaskPreliminaryDatasetReal(Dataset):
         """
         indices = [i for i, label in enumerate(self.labels) if label == cls]
         if no_duplicate:
-            sampled_indices = random.sample(indices, n_samples)
+            sampled_indices = random.sample(indices, k=n_samples)
         else:
-            sampled_indices = random.choices(indices, n_samples)
+            sampled_indices = random.choices(indices, k=n_samples)
         data_tensors = []
         label_tensors = []
         for i in sampled_indices:
@@ -270,9 +270,9 @@ class MultitaskPreliminaryDatasetReal(Dataset):
         """
         indices = [i for i, label in enumerate(self.pheno_labels) if label[0] == pheno0 and label[1] == pheno1]
         if no_duplicate and len(indices) >= n_samples:
-            sampled_indices = random.sample(indices, n_samples)
+            sampled_indices = random.sample(indices, k=n_samples)
         else:
-            sampled_indices = random.choices(indices, n_samples)
+            sampled_indices = random.choices(indices, k=n_samples)
         data_tensors = []
         ihm_label_tensors = []
         los_label_tensors = []

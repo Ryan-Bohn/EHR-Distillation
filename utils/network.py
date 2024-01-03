@@ -92,9 +92,9 @@ class Preliminary1DCNNMT(nn.Module):
         """
         super(Preliminary1DCNNMT, self).__init__()
         self.encoder = Preliminary1DCNNEncoder(dim=latent_dim, input_shape=input_shape)
-        self.decoders = [
+        self.decoders = nn.ModuleList([
             TaskHead(input_dim=latent_dim, output_dim=d) for d in output_dims
-        ]
+        ])
 
     def forward(self, x):
         features = self.encoder(x)

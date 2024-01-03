@@ -79,9 +79,9 @@ def compute_roc_auc_score_first_2_phenotype(model, loader):
                 # Store the softmax scores for ROC AUC computation
                 model_scores[i].extend(softmax_scores.cpu().numpy())
 
-                true_labels[i].extend(labels[i].cpu().numpy())
+                true_labels[i].extend(labels[:,i].cpu().numpy())
                 model_predictions[i].extend(predicted_classes.cpu().numpy())
-    roc_aucs = [[] for _ in range(2)]
+    roc_aucs = []
     for i in range(2):
         # Ensure that there are more than two classes
         if len(set(true_labels[i])) > 2:
@@ -92,7 +92,7 @@ def compute_roc_auc_score_first_2_phenotype(model, loader):
             positive_class_scores = [score[1] for score in model_scores[i]] # Use the scores for the positive class
             roc_auc = roc_auc_score(true_labels[i], positive_class_scores)
         roc_aucs.append(roc_auc)
-    return roc_auc
+    return roc_aucs
 
 
 def run_classificatoin_report(model, loader, do_print=True):
