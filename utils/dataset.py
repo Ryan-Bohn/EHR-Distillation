@@ -263,6 +263,29 @@ class MultitaskPreliminaryDatasetReal(Dataset):
             return torch.stack(data_tensors, dim=0), torch.stack(label_tensors, dim=0)
         else:
             return data_tensors, label_tensors
-
+        
+    def random_sample_by_first_2_phenotype(self, n_samples, pheno0, pheno1, no_duplicate=True, return_as_tensor=False):
+        """
+        Random sampling from dataset with first 2 phenotypes matching given ones.
+        """
+        indices = [i for i, label in enumerate(self.pheno_labels) if label[0] == pheno0 and label[1] == pheno1]
+        if no_duplicate and len(indices) >= n_samples:
+            sampled_indices = random.sample(indices, n_samples)
+        else:
+            sampled_indices = random.choices(indices, n_samples)
+        data_tensors = []
+        ihm_label_tensors = []
+        los_label_tensors = []
+        pheno_label_tensors = []
+        for i in sampled_indices:
+            data_tensor, ihm_label_tensor, los_label_tensor, pheno_label_tensor = self.__getitem__(i)
+            data_tensors.append(data_tensor)
+            ihm_label_tensors.append(ihm_label_tensor)
+            los_label_tensors.append(los_label_tensor)
+            pheno_label_tensors.append(pheno_label_tensor)
+        if return_as_tensor:
+            return torch.stack(data_tensors, dim=0), torch.stack(ihm_label_tensors, dim=0), torch.stack(los_label_tensors, dim=0), torch.stack(pheno_label_tensors, dim=0)
+        else:
+            return data_tensors, ihm_label_tensors, los_label_tensors, pheno_label_tensors
         
 

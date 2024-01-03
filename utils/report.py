@@ -9,6 +9,23 @@ import torch.nn.functional as F
 import pandas as pd
 
 
+def compute_auroc_score(logits, labels):
+    model_scores = F.softmax(logits, dim=1)
+    model_predictions = torch.max(model_scores, 1)[1].cpu().numpy()
+    true_labels = labels.cpu().numpy()
+    model_scores = model_scores.cpu().numpy()
+    
+    # Ensure that there are more than two classes
+    if len(set(true_labels)) > 2:
+        true_labels_binarized = label_binarize(true_labels, classes=sorted(set(true_labels)))
+        roc_auc = roc_auc_score(true_labels_binarized, model_scores, multi_class='ovr', average='macro')
+    else:
+        # If there are only two classes, do not binarize
+        positive_class_scores = [score[1] for score in model_scores] # Use the scores for the positive class
+        roc_auc = roc_auc_score(true_labels, positive_class_scores)
+    return roc_auc
+
+
 def compute_roc_auc_score(model, loader):
     # Switch the model to evaluation mode
     model.eval()
@@ -40,6 +57,43 @@ def compute_roc_auc_score(model, loader):
         positive_class_scores = [score[1] for score in model_scores] # Use the scores for the positive class
         roc_auc = roc_auc_score(true_labels, positive_class_scores)
     return roc_auc
+
+def compute_roc_auc_score_first_2_phenotype(model, loader):
+    # Switch the model to evaluation mode
+    model.eval()
+    device = next(model.parameters()).device
+    # Initialize lists to store true labels and model predictions
+    true_labels = [[] for _ in range(2)]
+    model_predictions = [[] for _ in range(2)]
+
+    model_scores = [[] for _ in range(2)]  # To store the softmax scores for each class
+
+    with torch.no_grad():
+        for inputs, *labels in loader:
+            outputs = model(inputs.to(device))
+            labels = labels[2][:, :2]
+            for i in range(2):
+                softmax_scores = F.softmax(outputs[i], dim=1)  # Apply softmax to convert logits to probabilities
+                _, predicted_classes = torch.max(softmax_scores, 1)
+                
+                # Store the softmax scores for ROC AUC computation
+                model_scores[i].extend(softmax_scores.cpu().numpy())
+
+                true_labels[i].extend(labels[i].cpu().numpy())
+                model_predictions[i].extend(predicted_classes.cpu().numpy())
+    roc_aucs = [[] for _ in range(2)]
+    for i in range(2):
+        # Ensure that there are more than two classes
+        if len(set(true_labels[i])) > 2:
+            true_labels_binarized = label_binarize(true_labels[i], classes=sorted(set(true_labels[i])))
+            roc_auc = roc_auc_score(true_labels_binarized, model_scores[i], multi_class='ovr', average='macro')
+        else:
+            # If there are only two classes, do not binarize
+            positive_class_scores = [score[1] for score in model_scores[i]] # Use the scores for the positive class
+            roc_auc = roc_auc_score(true_labels[i], positive_class_scores)
+        roc_aucs.append(roc_auc)
+    return roc_auc
+
 
 def run_classificatoin_report(model, loader, do_print=True):
     """

@@ -55,3 +55,50 @@ class IHMPreliminary1DCNN(nn.Module):
         x = F.relu(self.fc1(x))
         x = self.fc2(x)  # No activation here as CrossEntropyLoss applies softmax internally
         return x
+    
+
+class Preliminary1DCNNEncoder(nn.Module):
+    def __init__(self, dim, input_shape=(48, 42)):
+        """
+        init_distr: None, "kaiming", or "xavier"
+        """
+        super(Preliminary1DCNNEncoder, self).__init__()
+        
+        self.conv1 = nn.Conv1d(in_channels=input_shape[1], out_channels=64, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv1d(in_channels=64, out_channels=128, kernel_size=3, padding=1)
+        self.fc1 = nn.Linear(in_features=input_shape[0]*128, out_features=256)  # Adjusted to match the input dimensions
+        self.fc2 = nn.Linear(in_features=256, out_features=dim)  # Output dim scalar for downstream task
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x.permute(0, 2, 1))) # Transpose (seqlen * num_features) into channel-first
+        x = F.relu(self.conv2(x))
+        x = x.view(x.shape[0], -1)  # Flatten the output for the fully connected layer
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        return x
+    
+class TaskHead(nn.Module):
+    def __init__(self, input_dim, output_dim=2): # default is for binary classifcation obj
+        super(TaskHead, self).__init__()
+        self.fc = nn.Linear(input_dim, output_dim)
+    
+    def forward(self, x):
+        return self.fc(x) # no activation for softmax input
+
+class Preliminary1DCNNMT(nn.Module):
+    def __init__(self, input_shape, latent_dim, output_dims):
+        """
+        output_dims: list, containing output dims for each task
+        """
+        super(Preliminary1DCNNMT, self).__init__()
+        self.encoder = Preliminary1DCNNEncoder(dim=latent_dim, input_shape=input_shape)
+        self.decoders = [
+            TaskHead(input_dim=latent_dim, output_dim=d) for d in output_dims
+        ]
+
+    def forward(self, x):
+        features = self.encoder(x)
+        outputs = []
+        for decoder in self.decoders:
+            outputs.append(decoder(features))
+        return outputs
