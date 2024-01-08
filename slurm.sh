@@ -10,6 +10,16 @@
 module restore
 eval "$(conda shell.bash hook)"
 conda activate playground
-python -u gm_run.py --spc 10
-python -u gm_run.py --spc 100
-python -u gm_run.py --spc 50
+
+# execute some python codes
+
+# gradient matching distillation
+
+# python -u gm_run.py --spc 10
+# python -u gm_run.py --spc 100
+# python -u gm_run.py --spc 50
+
+# coreset
+python -u coreset_run.py --spc 1 --nexp 10
+python -u coreset_run.py --spc 10 --nexp 10
+python -u coreset_run.py --spc 100 --nexp 10
