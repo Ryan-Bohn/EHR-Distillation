@@ -48,6 +48,8 @@ def parse_args():
     
     parser.add_argument('--spc', type=int, required=True, help='Number of samples per class')
     parser.add_argument('--nexp', type=int, required=True, help='Number of experiments')
+    parser.add_argument('--method', type=str, default="random", help="Choose coreset selection method: random / herding / ...")
+    parser.add_argument('--gran', type=int, default=0, help="Coreset granularity")
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     default_outdir = os.path.join("./saved_data", timestamp)
     parser.add_argument('--outdir', type=str, default=None, help='Output directory for data')
@@ -204,20 +206,24 @@ def main():
         print(f"----------EXPERIMENT {exp}----------")
         # get the coreset
 
-        CORESET = ["random", ][0]
+        METHOD = args.method
         # define num sampled datapoints
         SPC = args.spc
 
         CORESET_BATCH_SIZE = 256
-
-        feats = []
-        labs = []
-        for cls in range(num_cls):
-            feat, lab = train_set.random_sample_from_class(n_samples=SPC, cls=cls, no_duplicate=True, return_as_tensor=True)
-            feats.append(feat)
-            labs.append(lab)
-        feats = torch.cat(feats, dim=0).to(DEVICE)
-        labs = torch.cat(labs, dim=0).to(DEVICE)
+        if METHOD == "random":
+            feats = []
+            labs = []
+            for cls in range(num_cls):
+                feat, lab = train_set.random_sample_from_class(n_samples=SPC, cls=cls, no_duplicate=True, return_as_tensor=True)
+                feats.append(feat)
+                labs.append(lab)
+            feats = torch.cat(feats, dim=0).to(DEVICE)
+            labs = torch.cat(labs, dim=0).to(DEVICE)
+        elif METHOD == "herding":
+            feats, labs = train_set.coreset(spc=SPC, method="herding", granularity=args.gran)
+        else:
+            raise NotImplementedError()
         coreset = dataset.TensorDataset(feats, labs)
         print(f"Coreset size = {len(coreset)}")
         coreset_loader = DataLoader(coreset, batch_size=CORESET_BATCH_SIZE)
@@ -290,7 +296,7 @@ def main():
         print(f"Eval score (test): {sum(test_scores) / len(test_scores):.4f}")
     
     # Save checkpoint
-    filepath = os.path.join(OUT_DIR, f'scores_{OBJECTIVE}_{SPC}spc_{CORESET}.pth')
+    filepath = os.path.join(OUT_DIR, f'scores_{OBJECTIVE}_{SPC}spc_{METHOD}.pth')
     torch.save({
         "init_scores_train": init_scores_train,
         "init_scores_test": init_scores_test,
