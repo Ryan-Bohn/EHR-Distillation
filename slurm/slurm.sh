@@ -10,7 +10,7 @@
 module restore
 eval "$(conda shell.bash hook)"
 conda activate playground
-
+cd ..
 # execute some python codes
 
 # gradient matching distillation
@@ -20,6 +20,6 @@ conda activate playground
 # python -u gm_run.py --spc 50
 
 # coreset
-python -u coreset_run.py --spc 1 --nexp 10
-python -u coreset_run.py --spc 10 --nexp 10
-python -u coreset_run.py --spc 100 --nexp 10
+python -u coreset_run.py --spc 1 --method herding --nexp 3
+python -u coreset_run.py --spc 10 --method herding --nexp 3
+python -u coreset_run.py --spc 100 --method herding --nexp 3
