@@ -1,0 +1,570 @@
+==========================================
+SLURM_JOB_ID = 18474441
+SLURM_JOB_NODELIST = b02-15
+TMPDIR = /tmp/SLURM_18474441
+==========================================
+Restoring modules from user's default
+All data will be output to ./saved_data/coreset20240109-011209
+Running on device: CUDA
+Joining timeseries episodes with label...
+Loading dataset to RAM...
+Found unified episodes file at ./data/mimic3/ihm_preliminary/train/all_episodes.pkl, skipping individuals...
+Preprocessing dataset...
+First item in the dataset: 
+(tensor([[ 1.0000e+00,  0.0000e+00, -3.1726e-17,  ...,  0.0000e+00,
+          0.0000e+00,  0.0000e+00],
+        [ 1.0000e+00,  0.0000e+00,  6.6762e-02,  ...,  0.0000e+00,
+          0.0000e+00,  0.0000e+00],
+        [ 1.0000e+00,  0.0000e+00,  4.8902e-02,  ...,  2.2003e-02,
+          0.0000e+00,  0.0000e+00],
+        ...,
+        [ 1.0000e+00,  0.0000e+00,  9.8018e-02,  ..., -8.6979e-02,
+          4.1913e+00,  0.0000e+00],
+        [ 1.0000e+00,  0.0000e+00,  1.2927e-01,  ..., -8.6979e-02,
+          4.1913e+00,  0.0000e+00],
+        [ 1.0000e+00,  0.0000e+00,  1.7646e-02,  ..., -8.6979e-02,
+          4.1913e+00,  0.0000e+00]]), tensor(0))
+Feature tensor shape: torch.Size([48, 42])
+Joining timeseries episodes with label...
+Loading dataset to RAM...
+Found unified episodes file at ./data/mimic3/ihm_preliminary/test/all_episodes.pkl, skipping individuals...
+Preprocessing dataset...
+First item in the dataset: 
+(tensor([[ 1.0000,  0.0000,  0.0310,  ..., -0.1730, -0.8523,  0.0391],
+        [ 1.0000,  0.0000,  0.0578,  ..., -0.1615, -0.8523,  0.0391],
+        [ 1.0000,  0.0000,  0.0623,  ..., -0.1615, -0.8523,  0.0391],
+        ...,
+        [ 1.0000,  0.0000,  0.0132,  ...,  0.0335, -0.5163,  0.0521],
+        [ 1.0000,  0.0000,  0.0087,  ...,  0.0335, -0.5163,  0.0521],
+        [ 1.0000,  0.0000,  0.0400,  ...,  0.0335, -0.5163,  0.0521]]), tensor(0))
+Feature tensor shape: torch.Size([48, 42])
+Input tensor shape: torch.Size([48, 42])
+----------EXPERIMENT 0----------
+Coreset size = 2
+Before training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.5229
+Eval score (test): 0.5265
+Training model on coreset...:   0%|          | 0/4 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+After training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.5356
+Eval score (test): 0.5365
+----------EXPERIMENT 1----------
+Coreset size = 2
+Before training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.4462
+Eval score (test): 0.4574
+Training model on coreset...:   0%|          | 0/4 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+After training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.4228
+Eval score (test): 0.4092
+----------EXPERIMENT 2----------
+Coreset size = 2
+Before training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.5166
+Eval score (test): 0.5113
+Training model on coreset...:   0%|          | 0/4 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+After training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.7206
+Eval score (test): 0.7282
+----------EXPERIMENT 3----------
+Coreset size = 2
+Before training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.5053
+Eval score (test): 0.5003
+Training model on coreset...:   0%|          | 0/4 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+After training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.7257
+Eval score (test): 0.7322
+----------EXPERIMENT 4----------
+Coreset size = 2
+Before training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.5892
+Eval score (test): 0.5995
+Training model on coreset...:   0%|          | 0/4 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+After training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.7178
+Eval score (test): 0.7263
+----------EXPERIMENT 5----------
+Coreset size = 2
+Before training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.4486
+Eval score (test): 0.4432
+Training model on coreset...:   0%|          | 0/4 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+After training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.7186
+Eval score (test): 0.7262
+----------EXPERIMENT 6----------
+Coreset size = 2
+Before training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.4761
+Eval score (test): 0.4855
+Training model on coreset...:   0%|          | 0/4 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+After training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.7153
+Eval score (test): 0.7260
+----------EXPERIMENT 7----------
+Coreset size = 2
+Before training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.5102
+Eval score (test): 0.5124
+Training model on coreset...:   0%|          | 0/4 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+After training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.6929
+Eval score (test): 0.7067
+----------EXPERIMENT 8----------
+Coreset size = 2
+Before training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.4475
+Eval score (test): 0.4459
+Training model on coreset...:   0%|          | 0/4 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+After training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.6893
+Eval score (test): 0.7041
+----------EXPERIMENT 9----------
+Coreset size = 2
+Before training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.5163
+Eval score (test): 0.5272
+Training model on coreset...:   0%|          | 0/4 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+After training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.6732
+Eval score (test): 0.6793
+All results of 10 experiment(s) saved to ./saved_data/coreset20240109-011209/scores_ihm_1spc_herding.pth.
+Average train score = 0.6611784283449629
+Average test score = 0.6674641695347856
+All data will be output to ./saved_data/coreset20240109-011421
+Running on device: CUDA
+Joining timeseries episodes with label...
+Loading dataset to RAM...
+Found unified episodes file at ./data/mimic3/ihm_preliminary/train/all_episodes.pkl, skipping individuals...
+Preprocessing dataset...
+First item in the dataset: 
+(tensor([[ 1.0000e+00,  0.0000e+00, -3.1726e-17,  ...,  0.0000e+00,
+          0.0000e+00,  0.0000e+00],
+        [ 1.0000e+00,  0.0000e+00,  6.6762e-02,  ...,  0.0000e+00,
+          0.0000e+00,  0.0000e+00],
+        [ 1.0000e+00,  0.0000e+00,  4.8902e-02,  ...,  2.2003e-02,
+          0.0000e+00,  0.0000e+00],
+        ...,
+        [ 1.0000e+00,  0.0000e+00,  9.8018e-02,  ..., -8.6979e-02,
+          4.1913e+00,  0.0000e+00],
+        [ 1.0000e+00,  0.0000e+00,  1.2927e-01,  ..., -8.6979e-02,
+          4.1913e+00,  0.0000e+00],
+        [ 1.0000e+00,  0.0000e+00,  1.7646e-02,  ..., -8.6979e-02,
+          4.1913e+00,  0.0000e+00]]), tensor(0))
+Feature tensor shape: torch.Size([48, 42])
+Joining timeseries episodes with label...
+Loading dataset to RAM...
+Found unified episodes file at ./data/mimic3/ihm_preliminary/test/all_episodes.pkl, skipping individuals...
+Preprocessing dataset...
+First item in the dataset: 
+(tensor([[ 1.0000,  0.0000,  0.0310,  ..., -0.1730, -0.8523,  0.0391],
+        [ 1.0000,  0.0000,  0.0578,  ..., -0.1615, -0.8523,  0.0391],
+        [ 1.0000,  0.0000,  0.0623,  ..., -0.1615, -0.8523,  0.0391],
+        ...,
+        [ 1.0000,  0.0000,  0.0132,  ...,  0.0335, -0.5163,  0.0521],
+        [ 1.0000,  0.0000,  0.0087,  ...,  0.0335, -0.5163,  0.0521],
+        [ 1.0000,  0.0000,  0.0400,  ...,  0.0335, -0.5163,  0.0521]]), tensor(0))
+Feature tensor shape: torch.Size([48, 42])
+Input tensor shape: torch.Size([48, 42])
+----------EXPERIMENT 0----------
+Coreset size = 20
+Before training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.5218
+Eval score (test): 0.5224
+Training model on coreset...:   0%|          | 0/4 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+After training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.5330
+Eval score (test): 0.5324
+----------EXPERIMENT 1----------
+Coreset size = 20
+Before training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.4455
+Eval score (test): 0.4509
+Training model on coreset...:   0%|          | 0/4 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+After training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.4828
+Eval score (test): 0.4936
+----------EXPERIMENT 2----------
+Coreset size = 20
+Before training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.5228
+Eval score (test): 0.5332
+Training model on coreset...:   0%|          | 0/4 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+After training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.7091
+Eval score (test): 0.7149
+----------EXPERIMENT 3----------
+Coreset size = 20
+Before training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.4587
+Eval score (test): 0.4556
+Training model on coreset...:   0%|          | 0/4 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+After training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.7128
+Eval score (test): 0.7182
+----------EXPERIMENT 4----------
+Coreset size = 20
+Before training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.5720
+Eval score (test): 0.5803
+Training model on coreset...:   0%|          | 0/4 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+After training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.7163
+Eval score (test): 0.7213
+----------EXPERIMENT 5----------
+Coreset size = 20
+Before training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.5846
+Eval score (test): 0.5798
+Training model on coreset...:   0%|          | 0/4 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+After training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.7249
+Eval score (test): 0.7311
+----------EXPERIMENT 6----------
+Coreset size = 20
+Before training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.5186
+Eval score (test): 0.5319
+Training model on coreset...:   0%|          | 0/4 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+After training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.7114
+Eval score (test): 0.7201
+----------EXPERIMENT 7----------
+Coreset size = 20
+Before training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.5325
+Eval score (test): 0.5276
+Training model on coreset...:   0%|          | 0/4 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+After training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.7051
+Eval score (test): 0.7147
+----------EXPERIMENT 8----------
+Coreset size = 20
+Before training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.4835
+Eval score (test): 0.4872
+Training model on coreset...:   0%|          | 0/4 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+After training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.6978
+Eval score (test): 0.7055
+----------EXPERIMENT 9----------
+Coreset size = 20
+Before training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.4850
+Eval score (test): 0.4956
+Training model on coreset...:   0%|          | 0/4 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+After training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.6984
+Eval score (test): 0.7077
+All results of 10 experiment(s) saved to ./saved_data/coreset20240109-011421/scores_ihm_10spc_herding.pth.
+Average train score = 0.6691522021012027
+Average test score = 0.6759494337567312
+All data will be output to ./saved_data/coreset20240109-011648
+Running on device: CUDA
+Joining timeseries episodes with label...
+Loading dataset to RAM...
+Found unified episodes file at ./data/mimic3/ihm_preliminary/train/all_episodes.pkl, skipping individuals...
+Preprocessing dataset...
+First item in the dataset: 
+(tensor([[ 1.0000e+00,  0.0000e+00, -3.1726e-17,  ...,  0.0000e+00,
+          0.0000e+00,  0.0000e+00],
+        [ 1.0000e+00,  0.0000e+00,  6.6762e-02,  ...,  0.0000e+00,
+          0.0000e+00,  0.0000e+00],
+        [ 1.0000e+00,  0.0000e+00,  4.8902e-02,  ...,  2.2003e-02,
+          0.0000e+00,  0.0000e+00],
+        ...,
+        [ 1.0000e+00,  0.0000e+00,  9.8018e-02,  ..., -8.6979e-02,
+          4.1913e+00,  0.0000e+00],
+        [ 1.0000e+00,  0.0000e+00,  1.2927e-01,  ..., -8.6979e-02,
+          4.1913e+00,  0.0000e+00],
+        [ 1.0000e+00,  0.0000e+00,  1.7646e-02,  ..., -8.6979e-02,
+          4.1913e+00,  0.0000e+00]]), tensor(0))
+Feature tensor shape: torch.Size([48, 42])
+Joining timeseries episodes with label...
+Loading dataset to RAM...
+Found unified episodes file at ./data/mimic3/ihm_preliminary/test/all_episodes.pkl, skipping individuals...
+Preprocessing dataset...
+First item in the dataset: 
+(tensor([[ 1.0000,  0.0000,  0.0310,  ..., -0.1730, -0.8523,  0.0391],
+        [ 1.0000,  0.0000,  0.0578,  ..., -0.1615, -0.8523,  0.0391],
+        [ 1.0000,  0.0000,  0.0623,  ..., -0.1615, -0.8523,  0.0391],
+        ...,
+        [ 1.0000,  0.0000,  0.0132,  ...,  0.0335, -0.5163,  0.0521],
+        [ 1.0000,  0.0000,  0.0087,  ...,  0.0335, -0.5163,  0.0521],
+        [ 1.0000,  0.0000,  0.0400,  ...,  0.0335, -0.5163,  0.0521]]), tensor(0))
+Feature tensor shape: torch.Size([48, 42])
+Input tensor shape: torch.Size([48, 42])
+----------EXPERIMENT 0----------
+Coreset size = 200
+Before training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.4962
+Eval score (test): 0.5008
+Training model on coreset...:   0%|          | 0/4 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+After training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.6913
+Eval score (test): 0.6940
+----------EXPERIMENT 1----------
+Coreset size = 200
+Before training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.4974
+Eval score (test): 0.4930
+Training model on coreset...:   0%|          | 0/4 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+After training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.6880
+Eval score (test): 0.6904
+----------EXPERIMENT 2----------
+Coreset size = 200
+Before training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.5235
+Eval score (test): 0.5391
+Training model on coreset...:   0%|          | 0/4 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+After training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.6696
+Eval score (test): 0.6786
+----------EXPERIMENT 3----------
+Coreset size = 200
+Before training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.5625
+Eval score (test): 0.5555
+Training model on coreset...:   0%|          | 0/4 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+After training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.6643
+Eval score (test): 0.6694
+----------EXPERIMENT 4----------
+Coreset size = 200
+Before training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.5193
+Eval score (test): 0.5304
+Training model on coreset...:   0%|          | 0/4 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+After training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.6775
+Eval score (test): 0.6851
+----------EXPERIMENT 5----------
+Coreset size = 200
+Before training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.5284
+Eval score (test): 0.5220
+Training model on coreset...:   0%|          | 0/4 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+After training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.6701
+Eval score (test): 0.6796
+----------EXPERIMENT 6----------
+Coreset size = 200
+Before training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.5433
+Eval score (test): 0.5513
+Training model on coreset...:   0%|          | 0/4 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+After training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.6746
+Eval score (test): 0.6827
+----------EXPERIMENT 7----------
+Coreset size = 200
+Before training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.5271
+Eval score (test): 0.5262
+Training model on coreset...:   0%|          | 0/4 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+After training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.6753
+Eval score (test): 0.6862
+----------EXPERIMENT 8----------
+Coreset size = 200
+Before training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.5215
+Eval score (test): 0.5307
+Training model on coreset...:   0%|          | 0/4 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+After training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.6808
+Eval score (test): 0.6912
+----------EXPERIMENT 9----------
+Coreset size = 200
+Before training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.4848
+Eval score (test): 0.4845
+Training model on coreset...:   0%|          | 0/4 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+It:   0%|          | 0/1000 [00:00<?, ?it/s]
+After training:
+Evaluating random sampled model...:   0%|          | 0/4 [00:00<?, ?it/s]
+Eval score (train): 0.6672
+Eval score (test): 0.6800
+All results of 10 experiment(s) saved to ./saved_data/coreset20240109-011648/scores_ihm_100spc_herding.pth.
+Average train score = 0.6758848576198595
+Average test score = 0.6837283536437255
