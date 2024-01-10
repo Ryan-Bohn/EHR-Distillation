@@ -48,15 +48,15 @@ def parse_args():
     
     parser.add_argument('--spc', type=int, required=True, help='Number of samples per class')
     parser.add_argument('--nexp', type=int, required=True, help='Number of experiments')
-    parser.add_argument('--method', type=str, default="random", help="Choose coreset selection method: random / herding / ...")
+    parser.add_argument('--method', type=str, default="random", help="Choose coreset selection method: random / herding / k-center")
     parser.add_argument('--gran', type=int, default=0, help="Coreset granularity")
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     default_outdir = os.path.join("./saved_data", timestamp)
     parser.add_argument('--outdir', type=str, default=None, help='Output directory for data')
-    parser.add_argument('--testflag', action='store_true', help='Set a test flag, so the program returns immediately, for shell scripts testing')
+    parser.add_argument('--testflag', type=int, default=0, help='Set a test flag, so the program runs without writing data (1), or returns immediately (2), for shell scripts testing')
 
     args = parser.parse_args()
-    if args.testflag:
+    if args.testflag == 2:
         # Print the entire list of command-line arguments
         print("All arguments:", sys.argv)
 
@@ -81,12 +81,14 @@ def main():
 
     # parse arguments
     args = parse_args()
+    do_write_result = not args.testflag == 1
 
     OUT_DIR = args.outdir
     if OUT_DIR is None:
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         OUT_DIR = os.path.join("./saved_data", "coreset"+timestamp)
-        os.makedirs(OUT_DIR, exist_ok=True)
+        if do_write_result:
+            os.makedirs(OUT_DIR, exist_ok=True)
     elif not os.path.exists(OUT_DIR):
         raise ValueError("Not a valid output dir")
     print(f"All data will be output to {OUT_DIR}")
@@ -220,8 +222,8 @@ def main():
                 labs.append(lab)
             feats = torch.cat(feats, dim=0).to(DEVICE)
             labs = torch.cat(labs, dim=0).to(DEVICE)
-        elif METHOD == "herding":
-            feats, labs = train_set.coreset(spc=SPC, method="herding", granularity=args.gran)
+        elif METHOD in ["herding", "k-center"]:
+            feats, labs = train_set.coreset(spc=SPC, method=METHOD, granularity=args.gran)
         else:
             raise NotImplementedError()
         coreset = dataset.TensorDataset(feats, labs)
@@ -276,7 +278,8 @@ def main():
         plt.ylabel('Loss')
         plt.title('Training Loss Curves')
         plt.legend()
-        plt.savefig(os.path.join(OUT_DIR, f"exp{exp}.png"))
+        if do_write_result:
+            plt.savefig(os.path.join(OUT_DIR, f"exp{exp}.png"))
         plt.clf()
 
         # eval the trained result models
@@ -297,15 +300,16 @@ def main():
     
     # Save checkpoint
     filepath = os.path.join(OUT_DIR, f'scores_{OBJECTIVE}_{SPC}spc_{METHOD}.pth')
-    torch.save({
-        "init_scores_train": init_scores_train,
-        "init_scores_test": init_scores_test,
-        "trained_scores_train": trained_scores_train,
-        "trained_scores_test": trained_scores_test,
-        "train_it": train_it,
-        "lr": lr,
-    }, filepath)
-    print(f"All results of {args.nexp} experiment(s) saved to {filepath}.")
+    if do_write_result:
+        torch.save({
+            "init_scores_train": init_scores_train,
+            "init_scores_test": init_scores_test,
+            "trained_scores_train": trained_scores_train,
+            "trained_scores_test": trained_scores_test,
+            "train_it": train_it,
+            "lr": lr,
+        }, filepath)
+        print(f"All results of {args.nexp} experiment(s) saved to {filepath}.")
 
     print(f"Average train score = {average_2d_list(trained_scores_train)}")
     print(f"Average test score = {average_2d_list(trained_scores_test)}")

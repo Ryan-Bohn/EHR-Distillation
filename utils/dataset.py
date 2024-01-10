@@ -228,6 +228,32 @@ class IHMPreliminaryDatasetReal(Dataset):
                     _, selected_idx = heapq.heappop(distances)
                     selected_indices.add(selected_idx)
                     coresets[cls].append(selected_idx)
+                    
+        elif method == "k-center":
+            for cls, indices in self.samples_by_class.items():
+                # Start with a random index
+                initial_idx = np.random.choice(indices)
+                coresets[cls].append(initial_idx)
+
+                # Initialize distances with infinity
+                min_distances = {idx: float('inf') for idx in indices if idx != initial_idx}
+
+                # Update distances for the initial index
+                initial_sample, _ = self.__getitem__(initial_idx)
+                for idx in min_distances:
+                    sample, _ = self.__getitem__(idx)
+                    min_distances[idx] = self._calculate_distance(sample, initial_sample, granularity)
+
+                # Iteratively add farthest points
+                for _ in range(spc - 1):
+                    farthest_idx = max(min_distances, key=min_distances.get)
+                    coresets[cls].append(farthest_idx)
+
+                    new_sample, _ = self.__getitem__(farthest_idx)
+                    for idx in min_distances:
+                        sample, _ = self.__getitem__(idx)
+                        min_distances[idx] = min(min_distances[idx], self._calculate_distance(sample, new_sample, granularity))
+
         else:
             raise NotImplementedError("Currently, only 'herding' method is implemented.")
         
