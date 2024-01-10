@@ -258,7 +258,10 @@ def main():
     NUM_EVAL_EPOCHS = 1000
     NUM_SAMPLED_NETS_EVAL = 4
     LR_DATA = 0.1 # original: 0.1
-    LR_NET = 0.01 # original: 0.01
+    LR_NET = { # original: 0.01
+        "ihm": 0.01,
+        "los": 0.00001,
+        }[OBJECTIVE]
     NUM_INNER_LOOPS = 10
     NUM_UPDT_STEPS_DATA = 1 # s_S
     NUM_UPDT_STEPS_NET = 50 # s_theta
@@ -474,13 +477,17 @@ def main():
                 loss_syn = criterion(out_syn, lab_syn.view(-1, 1))
                 grad_syn = torch.autograd.grad(loss_syn, net_params, create_graph=True) # create_graph: will be used to compute higher-order derivatives
 
+
                 dis = torch.tensor(0.0).to(DEVICE)
 
                 if MATCH_LOSS == "gmatch":
                     for gidx in range(len(grad_real)):
                         gr = grad_real[gidx]
                         gs = grad_syn[gidx]
+                        # contains_nan = torch.isnan(gr).any() or torch.isnan(gs).any()
+                        # print(f"Does the tensor contain NaN values? {contains_nan}")
                         dis += distance_wb(gr, gs)
+                        # print("I'm dis", dis)
                 elif MATCH_LOSS == "mse":
                     # compute gradient matching loss, here using MSE, instead of the one proposed in DCwMG because it's too complicated
                     # dis = torch.tensor(0.0).to(DEVICE)
@@ -495,9 +502,11 @@ def main():
                 else:
                     raise NotImplementedError()
                 loss += dis
+                print(loss)
             optimizer_feat.zero_grad()
             loss.backward()
             optimizer_feat.step()
+            print(feat_syn.isnan().any() or lab_syn.isnan().any())
             loss_avg += loss.item()
             # print(f"It = {it}, synthetic image pixels are now distributed within [{torch.min(feat_syn)}, {torch.max(feat_syn)}]")
             
@@ -516,6 +525,9 @@ def main():
                 optimizer_net.zero_grad()
                 train_loss.backward()
                 optimizer_net.step()
+            for name, param in net.named_parameters():
+                if torch.isnan(param).any():
+                    print(f"NaN found in {name}")
 
         loss_avg /= (2 * NUM_INNER_LOOPS)
         pbar.set_postfix({"avg loss": f"{loss_avg:.4f}",
