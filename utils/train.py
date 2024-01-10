@@ -1,4 +1,5 @@
 import numpy as np
+import torch.nn as nn
 
 def epoch(mode, dataloader, net, criterion, optimizer=None, device=None):
     loss_avg, acc_avg, num_exp = 0, 0, 0
@@ -14,11 +15,13 @@ def epoch(mode, dataloader, net, criterion, optimizer=None, device=None):
         net.eval()
 
     for i_batch, datum in enumerate(dataloader):
-        feat = datum[0].float().to(device)
-        lab = datum[1].long().to(device)
+        feat = datum[0].to(device)
+        lab = datum[1].to(device)
         n_b = lab.shape[0]
 
         output = net(feat)
+        if isinstance(criterion, nn.MSELoss):
+            lab = lab.view(-1, 1)
         loss = criterion(output, lab)
         acc = np.sum(np.equal(np.argmax(output.cpu().data.numpy(), axis=-1), lab.cpu().data.numpy()))
 

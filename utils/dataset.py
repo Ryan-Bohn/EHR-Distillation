@@ -228,7 +228,7 @@ class IHMPreliminaryDatasetReal(Dataset):
                     _, selected_idx = heapq.heappop(distances)
                     selected_indices.add(selected_idx)
                     coresets[cls].append(selected_idx)
-                    
+
         elif method == "k-center":
             for cls, indices in self.samples_by_class.items():
                 # Start with a random index
@@ -398,3 +398,206 @@ class MultitaskPreliminaryDatasetReal(Dataset):
             return data_tensors, ihm_label_tensors, los_label_tensors, pheno_label_tensors
         
 
+class Mimic3BenchmarkDataset(Dataset):
+    # load cleaned mimic3benchmark preprocessed data as dataset
+    def __init__(self, dir, avg_dict, std_dict, numcls_dict, dstype="train", objective="ihm"):
+        """
+        dir: directory that has "all.pkl". see the syntax in preprocess.join_multitask_labels()
+        dstype: "train" or "test" 
+        avg_dict and std_dict: for continous columns only
+        numcls_dict: stating how many classes are there for categorical columns only
+        objective: in ["ihm", "los",]
+        """
+        self.dir = dir
+        self.dstype = dstype
+        self.avg = avg_dict
+        self.std = std_dict
+        self.numcls = numcls_dict
+        self.set_objective(objective)
+        print(f"Initializing {dstype} set for {objective} objective...")
+        self.keys = []
+        self.episodes = []
+        self.ihm_labels = []
+        self.los_labels = []
+        self.pheno_labels = []
+        print("Loading dataset to RAM...")
+        pkl_path = os.path.join(dir, "all.pkl")
+        if os.path.exists(pkl_path):
+            # Loading the dictionary from the pickle file
+            print(f"Loading from file {pkl_path}, skipping individuals...")
+            with open(pkl_path, 'rb') as file:
+                all_data_dict = pickle.load(file)
+            for i, key in enumerate(all_data_dict.keys()):
+                self.keys.append(key)
+                self.episodes.append(all_data_dict[key]["ts"])
+                self.ihm_labels.append(all_data_dict[key]["ihm"])
+                self.los_labels.append(all_data_dict[key]["los"])
+                self.pheno_labels.append(all_data_dict[key]["pheno"])
+        else:
+            raise NotImplementedError()
+
+        # preprocess
+        self.processed = None
+        self.processed = []
+        print("Preprocessing dataset...")
+        for episode in self.episodes:
+            self.processed.append(self._process_df(episode))
+
+        # compute stats
+        print("Computing dataset statistics...")
+        los_mean = np.mean(self.los_labels)
+        los_std = np.std(self.los_labels)
+        self.stats = {
+            "los_mean": los_mean,
+            "los_std": los_std,
+        }
+
+    def set_objective(self, objective):
+        if objective not in ["ihm", "los"]:
+            raise NotImplementedError()
+        self.obj = objective
+        print(f"Objective has been set to {self.obj}")
+
+   
+    def __len__(self):
+        return len(self.keys)
+        
+    def _process_df(self, data):
+        """
+        returns a tensor
+        normalize, expand categorical features to one-hot, and form a tensor sized num_features * num_time_steps
+        """
+        processed_data = []
+        for col_name, col_data in data.items():
+            if "mask" in col_name: # mask column, do no processing
+                pass
+            elif col_name in self.avg.keys(): # column is a continuous feature, normalize it
+                normalized_col_data = (col_data - self.avg[col_name]) / self.std[col_name]
+                processed_data.append(torch.tensor(normalized_col_data.values, dtype=torch.float).unsqueeze(1)) # sized (seqlen*1)
+            elif col_name in self.numcls.keys() : # column is categorical, one-hot it
+                one_hot_col_data = F.one_hot(torch.tensor(col_data.astype(int).values)-1, num_classes=self.numcls[col_name]) # -1 for one_hot() expect input starting from 0
+                processed_data.append(one_hot_col_data) # sized (seqlen*numcls)
+            else:
+                raise ValueError("Can't identify column: {col_name}")
+        data_tensor = torch.cat(processed_data, dim=1) # sized (seqlen * num_features) where seqlen is 48/sample_rate_in_hour
+        return data_tensor
+    
+    def __getitem__(self, idx):
+        return self.processed[idx], {
+            "ihm": torch.tensor(self.ihm_labels[idx], dtype=torch.long),
+            "los": torch.tensor(self.los_labels[idx], dtype=torch.float),
+            }[self.obj]
+    
+
+    def random_sample(self, n_samples, match_label=None, no_duplicate=True, return_as_tensor=False):
+        """
+        Default return value: (list(samples), list(labels))
+        """
+        if match_label is not None:
+            if self.obj == "ihm":
+                indices = [i for i, label in enumerate(self.ihm_labels) if label == match_label]
+            else:
+                raise NotImplementedError()
+        else:
+            indices = list(range(len(self.keys)))
+        if no_duplicate:
+            sampled_indices = random.sample(indices, k=n_samples)
+        else:
+            sampled_indices = random.choices(indices, k=n_samples)
+        data_tensors = []
+        label_tensors = []
+        for i in sampled_indices:
+            data_tensor, label_tensor = self.__getitem__(i)
+            data_tensors.append(data_tensor)
+            label_tensors.append(label_tensor)
+        if return_as_tensor:
+            return torch.stack(data_tensors, dim=0), torch.stack(label_tensors, dim=0)
+        else:
+            return data_tensors, label_tensors
+
+        
+    def coreset(self, n_samples: int, match_label=None, method: str="herding", granularity:int=0):
+        """
+        spc: number of samples per class
+        granularity: average samples by 48h (0) or by each hour (1). The number indicate the deepest axis to average on
+        """
+        if match_label is not None:
+            if self.obj == "ihm":
+                indices = [i for i, label in enumerate(self.ihm_labels) if label == match_label]
+            else:
+                raise NotImplementedError()
+        else:
+            indices = list(range(len(self.keys)))
+        coreset_indices = []
+
+        if method == "herding":
+            # Precompute and store distances
+            distances = []
+            class_mean = self._calculate_mean(indices, granularity)
+            for idx in indices:
+                sample, _ = self.__getitem__(idx)
+                distance = self._calculate_distance(sample, class_mean, granularity)
+                distances.append((distance, idx))
+
+            # Using a heap to efficiently get the minimum distance sample
+            heapq.heapify(distances)
+            selected_indices = set()
+            for _ in range(n_samples):
+                _, selected_idx = heapq.heappop(distances)
+                selected_indices.add(selected_idx)
+                coreset_indices.append(selected_idx)
+
+        elif method == "k-center":
+            # Start with a random index
+            initial_idx = np.random.choice(indices)
+            coreset_indices.append(initial_idx)
+
+            # Initialize distances with infinity
+            min_distances = {idx: float('inf') for idx in indices if idx != initial_idx}
+
+            # Update distances for the initial index
+            initial_sample, _ = self.__getitem__(initial_idx)
+            for idx in min_distances:
+                sample, _ = self.__getitem__(idx)
+                min_distances[idx] = self._calculate_distance(sample, initial_sample, granularity)
+
+            # Iteratively add farthest points
+            for _ in range(n_samples - 1):
+                farthest_idx = max(min_distances, key=min_distances.get)
+                coreset_indices.append(farthest_idx)
+
+                new_sample, _ = self.__getitem__(farthest_idx)
+                for idx in min_distances:
+                    sample, _ = self.__getitem__(idx)
+                    min_distances[idx] = min(min_distances[idx], self._calculate_distance(sample, new_sample, granularity))
+
+        else:
+            raise NotImplementedError()
+        
+        data_tensors = []
+        label_tensors = []
+        for idx in coreset_indices:
+            data_tensor, label_tensor = self.__getitem__(idx)
+            data_tensors.append(data_tensor)
+            label_tensors.append(label_tensor)
+        return torch.stack(data_tensors, dim=0), torch.stack(label_tensors, dim=0)
+
+    def _calculate_mean(self, indices, granularity):
+        sum_tensors = None
+        for idx in indices:
+            sample, _ = self.__getitem__(idx)
+            if granularity == 1:
+                sample = sample.mean(dim=0)  # Average across time dimension
+            if sum_tensors is None:
+                sum_tensors = sample
+            else:
+                sum_tensors += sample
+        return sum_tensors / len(indices)
+
+    def _calculate_distance(self, sample, mean, granularity):
+        if granularity == 1:
+            sample = sample.mean(dim=0)  # Average across time dimension
+        return torch.norm(sample - mean).item()
+    
+    def get_stats(self):
+        return self.stats

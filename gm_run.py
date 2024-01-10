@@ -35,7 +35,8 @@ from utils import preprocess, dataset, network, train, report
 def parse_args():
     parser = argparse.ArgumentParser(description='Parse command line arguments.')
     
-    parser.add_argument('--spc', type=int, required=True, help='Number of samples per class')
+    parser.add_argument('--n', type=int, required=True, help='Number of synthetic samples in total')
+    parser.add_argument('--obj', type=str, required=True, help="Objective")
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     default_outdir = os.path.join("./saved_data", timestamp)
     parser.add_argument('--outdir', type=str, default=None, help='Output directory for data')
@@ -45,12 +46,14 @@ def parse_args():
     if args.testflag:
         # Print the entire list of command-line arguments
         print("All arguments:", sys.argv)
-
         # Access individual arguments (excluding the script name)
         for i, arg in enumerate(sys.argv[1:], start=1):
             print(f"Argument {i}: {arg}")
 
         exit(0)
+    
+    if args.obj not in ["ihm", "los",]:
+        raise NotImplementedError()
         
     return args
 
@@ -60,6 +63,8 @@ def get_net(name, feat_shape, init=None):
             net = network.IHMPreliminary1DCNN(input_shape=feat_shape, init_distr=init)
         elif name == "mlp":
             net = network.IHMPreliminaryMLP(input_shape=feat_shape, init_distr=init)
+        elif name == "1dcnnregr":
+            net = network.Preliminary1DCNNRegressor(input_shape=feat_shape, init_distr=init, output_dim=1)
         else:
             raise NotImplementedError()
         return net
@@ -139,85 +144,79 @@ def main():
         preprocess.unify_ihm_episodes(dir="./data/mimic3/ihm_preliminary/train/")
         preprocess.unify_ihm_episodes(dir="./data/mimic3/ihm_preliminary/test/")
 
+    # join other tasks (lof, phenotyping) into the fully preprocessed and unified ihm data
+    # skip if ./data/mimic3/multitask_preliminary/test/all.pkl already exists
+    if not os.path.exists(os.path.join("./data/mimic3/multitask_preliminary/test/", "all.pkl")):
+        preprocess.join_multitask_labels(
+            cleaned_ihm_ts_dir="./data/mimic3/ihm_preliminary/train/",
+            raw_multitask_ts_dir="./data/mimic3/benchmark/multitask/train/",
+            output_dir="./data/mimic3/multitask_preliminary/train/",
+            )
+        preprocess.join_multitask_labels(
+            cleaned_ihm_ts_dir="./data/mimic3/ihm_preliminary/test/",
+            raw_multitask_ts_dir="./data/mimic3/benchmark/multitask/test/",
+            output_dir="./data/mimic3/multitask_preliminary/test/",
+            )
 
-    # define ihm objective datasets and dataloaders
 
-    IHM_NUM_CLS = 2 # this is a binary classification objective
+    # define multi objective datasets and dataloaders
 
-    IHM_BALANCE = False
-    IHM_MASK = False
-
-    LOAD_TO_RAM = True
-
-    ihm_train_set = dataset.IHMPreliminaryDatasetReal(
-        dir="./data/mimic3/ihm_preliminary/train/",
+    train_set = dataset.Mimic3BenchmarkDataset(
+        dir="./data/mimic3/multitask_preliminary/train/",
+        avg_dict=continuous_avgs_train,
+        std_dict=continuous_stds_train,
+        numcls_dict=CATEGORICAL_NUM_CLS_DICT,
         dstype="train",
+        objective="ihm"
+        )
+    print(f"First item in the dataset: \n{train_set[0]}")
+    print(f"Feature tensor shape: {train_set[0][0].shape}")
+    train_set_stats = train_set.get_stats()
+
+    test_set = dataset.Mimic3BenchmarkDataset(
+        dir="./data/mimic3/multitask_preliminary/test/",
         avg_dict=continuous_avgs_train,
         std_dict=continuous_stds_train,
         numcls_dict=CATEGORICAL_NUM_CLS_DICT,
-        balance=IHM_BALANCE,
-        mask=IHM_MASK,
-        load_to_ram=LOAD_TO_RAM,
-        )
-    print(f"First item in the dataset: \n{ihm_train_set[0]}")
-    print(f"Feature tensor shape: {ihm_train_set[0][0].shape}")
-
-    ihm_test_set = dataset.IHMPreliminaryDatasetReal(
-        dir="./data/mimic3/ihm_preliminary/test/",
         dstype="test",
-        avg_dict=continuous_avgs_train,
-        std_dict=continuous_stds_train,
-        numcls_dict=CATEGORICAL_NUM_CLS_DICT,
-        balance=IHM_BALANCE,
-        mask=IHM_MASK,
-        load_to_ram=LOAD_TO_RAM,
+        objective="ihm"
         )
-    print(f"First item in the dataset: \n{ihm_test_set[0]}")
-    print(f"Feature tensor shape: {ihm_test_set[0][0].shape}")
+    print(f"First item in the dataset: \n{test_set[0]}")
+    print(f"Feature tensor shape: {test_set[0][0].shape}")
 
-    ihm_feat_shape = ihm_train_set[0][0].shape
-    print(f"Input tensor shape: {ihm_feat_shape}")
+    feat_shape = train_set[0][0].shape
+    print(f"Input tensor shape: {feat_shape}")
 
     # prepare dataloaders
 
-    NUM_WORKERS = 8 if not LOAD_TO_RAM else 0
-    IHM_BATCH_SIZE = 256
+    NUM_WORKERS = 0
+    DS_BATCH_SIZE = 256
 
-    ihm_train_loader = DataLoader(ihm_train_set, IHM_BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
-    ihm_test_loader = DataLoader(ihm_test_set, IHM_BATCH_SIZE, num_workers=NUM_WORKERS)
+    train_loader = DataLoader(train_set, DS_BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
+    test_loader = DataLoader(test_set, DS_BATCH_SIZE, num_workers=NUM_WORKERS)
 
-    # define synthetic IHM dataset
-    NUM_SAMPLES_PER_CLS = args.spc
-    FROM_REAL_SAMPLES = False
-    print(f"Initializing synthetic dataset. SPC = {NUM_SAMPLES_PER_CLS}")
+    # define synthetic dataset
+    NUM_SAMPLES_TOTAL = args.n
+    print(f"Initializing synthetic dataset. Number of samples in total = {NUM_SAMPLES_TOTAL}")
+
+    OBJECTIVE = args.obj
+
+    train_set.set_objective(objective=OBJECTIVE)
+    test_set.set_objective(objective=OBJECTIVE)
 
     # initialize random synth dataset
-    if not FROM_REAL_SAMPLES:
-        ihm_feat_syn = torch.randn(size=(IHM_NUM_CLS*NUM_SAMPLES_PER_CLS, *ihm_feat_shape), dtype=torch.float, requires_grad=True, device=DEVICE)
-        ihm_lab_syn = torch.tensor(np.array([np.ones(NUM_SAMPLES_PER_CLS)*i for i in range(IHM_NUM_CLS)]), dtype=torch.long, requires_grad=False, device=DEVICE).view(-1)
-    else:
-        # Randomly sample features from each class
-        sampled_features = {i: ihm_train_set.random_sample_from_class(n_samples=NUM_SAMPLES_PER_CLS, cls=i) for i in range(IHM_NUM_CLS)[0]}
-        assert len(sampled_features) == IHM_NUM_CLS
-        feature_tensors = []
-        label_tensors = []
-        for label in sorted(sampled_features.keys()):
-            features = sampled_features[label]
-            # Stack all features for this class into a single tensor and add to the list
-            feature_tensors.append(torch.stack(features))
-            # Create a tensor of labels for this class and add to the list
-            labels = torch.full((len(features),), label, dtype=torch.long)
-            label_tensors.append(labels)
-        # Concatenate all class tensors to form the dataset
-        ihm_feat_syn = torch.cat(feature_tensors).to(DEVICE)
-        ihm_lab_syn = torch.cat(label_tensors).to(DEVICE)
-        # Reshape the feature tensor to match the required shape
-        ihm_feat_syn = ihm_feat_syn.view(-1, *ihm_feat_shape)
-        # require grad for ihm_feat_syn
-        ihm_feat_syn.requires_grad_(True)
-
+    if OBJECTIVE == "ihm":
+        feat_syn = torch.randn(size=(NUM_SAMPLES_TOTAL), dtype=torch.float, requires_grad=True, device=DEVICE)
+        lab_syn = torch.tensor(np.array([np.ones(NUM_SAMPLES_TOTAL//2)*i for i in range(2)]), dtype=torch.long, requires_grad=False, device=DEVICE).view(-1)
+    elif OBJECTIVE == "los":
+        feat_syn = torch.randn(size=(NUM_SAMPLES_TOTAL, *feat_shape), dtype=torch.float, requires_grad=True, device=DEVICE)
+        lab_samples = np.random.normal(loc=train_set_stats["los_mean"], scale=train_set_stats["los_std"], size=NUM_SAMPLES_TOTAL)
+        lab_syn = torch.tensor(lab_samples, dtype=torch.float, device=DEVICE).view(-1)
+        lab_syn.requires_grad_()
+    print(f"Synthetic feature shape: {feat_syn.shape}")
+    print(f"Synthetic label shape: {lab_syn.shape}")
     # print some of the feature tensors
-    feats = ihm_feat_syn.clone().cpu()
+    feats = feat_syn.clone().cpu()
     fig, ax = plt.subplots(figsize=(12, 6))
     plt.title("Random initialized features for IHM distillation")
     ax.set_xticks([])
@@ -228,7 +227,7 @@ def main():
 
     # plot tensor element value distributions
     # Convert feat_syn to a numpy array if it's not already
-    feat_syn_np = ihm_feat_syn.detach().cpu().numpy()
+    feat_syn_np = feat_syn.detach().cpu().numpy()
     # Reshape the array to a 1D array for histogram plotting
     pixels = feat_syn_np.reshape(-1)
     # Plotting the histogram
@@ -243,20 +242,12 @@ def main():
 
     # distill with gradient matching
 
-    OBJECTIVE = ["ihm"][0]
-
     # define local variables
     if OBJECTIVE == "ihm":
-        feat_shape = ihm_feat_shape
-        train_set = ihm_train_set
-        test_set = ihm_test_set
-        train_loader = ihm_train_loader
-        test_loader = ihm_test_loader
-        feat_syn = ihm_feat_syn
-        lab_syn = ihm_lab_syn
         net_name = "1dcnn"
-        continuous_avgs_train, continuous_stds_train, categorical_modes_train = continuous_avgs_train, continuous_stds_train, categorical_modes_train
-        num_cls = IHM_NUM_CLS
+        comment = ""
+    elif OBJECTIVE == "los":
+        net_name = "1dcnnregr"
         comment = ""
     else:
         raise NotImplementedError()
@@ -282,9 +273,15 @@ def main():
     MATCH_LOSS = ["gmatch", "mse", "cos"][0]
 
     # define training optimizers and criterion
-    optimizer_feat = torch.optim.SGD([feat_syn,], lr=LR_DATA, momentum=0.5) # optimizer for synthetic data
+    if OBJECTIVE == "ihm":
+        optimizer_feat = torch.optim.SGD([feat_syn,], lr=LR_DATA, momentum=0.5) # optimizer for synthetic data
+    elif OBJECTIVE == "los":
+        optimizer_feat = torch.optim.SGD([feat_syn, lab_syn,], lr=LR_DATA, momentum=0.5) # optimizer for synthetic data
     optimizer_feat.zero_grad()
-    criterion = nn.CrossEntropyLoss()
+    criterion = {
+        "ihm": nn.CrossEntropyLoss(),
+        "los": nn.MSELoss(),
+    }[OBJECTIVE]
     print("Ready for training")
 
     # data for plotting curves
@@ -352,7 +349,7 @@ def main():
                     torch.random.manual_seed(42) # fixed seed
                 else:
                     torch.random.manual_seed(int(time.time() * 1000) % 100000) # random seed
-                net = get_net(net_name, feat_shape=ihm_feat_shape, init=INIT_WEIGHTS_DISTR).to(DEVICE)
+                net = get_net(net_name, feat_shape=feat_shape, init=INIT_WEIGHTS_DISTR).to(DEVICE)
                 sampled_nets.append(net)
             for j, net in enumerate(sampled_nets):
                 print(f"Training network {j} for evaluation...")
@@ -361,6 +358,8 @@ def main():
                 # train the models on synthetic set
                 for s in range(NUM_EVAL_EPOCHS):
                     pred_syn = net(feat_syn_snapshot)
+                    if isinstance(criterion, nn.MSELoss):
+                        lab_syn = lab_syn.view(-1, 1)
                     loss_syn = criterion(pred_syn, lab_syn)
                     optimizer.zero_grad()
                     loss_syn.backward()
@@ -368,8 +367,12 @@ def main():
             for j, net in enumerate(sampled_nets):
                 print(f"Testing network {j} on real datasets for evaluation...")
                 # evaluate the models on both full train set and test set
-                train_score = report.compute_roc_auc_score(net, train_loader)
-                test_score = report.compute_roc_auc_score(net, test_loader)
+                if OBJECTIVE == "ihm":
+                    train_score = report.compute_roc_auc_score(net, train_loader)
+                    test_score = report.compute_roc_auc_score(net, test_loader)
+                elif OBJECTIVE == "los":
+                    train_score, _ = train.epoch(mode="test", dataloader=train_loader, net=net, criterion=criterion, device=DEVICE)
+                    test_score, _ = train.epoch(mode="test", dataloader=test_loader, net=net, criterion=criterion, device=DEVICE)
                 local_train_scores.append(train_score)
                 local_test_scores.append(test_score)
             eval_scores_train.append(sum(local_train_scores) / len(local_train_scores))
@@ -381,7 +384,7 @@ def main():
             "method": "gmatch",
             "net_name": net_name,
             "it": it,
-            "num_cls": num_cls,
+            "num_cls": {"ihm": 2, "los": None}[OBJECTIVE],
             "feat_syn": feat_syn.detach().clone(),
             "lab_syn": lab_syn.detach().clone(),
             'optim_losses': avg_losses,
@@ -395,7 +398,7 @@ def main():
         }
         
         # Save checkpoint
-        filepath = os.path.join(CHECKPOINT_SAVE_DIR, f'chckpnt_{OBJECTIVE}_{NUM_SAMPLES_PER_CLS}spc_{"sample" if FROM_REAL_SAMPLES else "noise"}.pth')
+        filepath = os.path.join(CHECKPOINT_SAVE_DIR, f'chckpnt_{OBJECTIVE}_{NUM_SAMPLES_TOTAL}samples.pth')
         torch.save(checkpoint, filepath)
         print(f"Checkpoint at iteration {it} saved at {filepath}. Loss = {'None' if len(avg_losses) == 0 else avg_losses[-1]}")
         
@@ -407,7 +410,7 @@ def main():
             torch.random.manual_seed(42) # fixed seed
         else:
             torch.random.manual_seed(int(time.time() * 1000) % 100000) # random seed
-        net = get_net(net_name, feat_shape=ihm_feat_shape, init=INIT_WEIGHTS_DISTR).to(DEVICE)
+        net = get_net(net_name, feat_shape=feat_shape, init=INIT_WEIGHTS_DISTR).to(DEVICE)
         net.train()
         net_params = list(net.parameters())
 
@@ -418,20 +421,57 @@ def main():
         for l in range(NUM_INNER_LOOPS):
             # update synthetic data
             loss = torch.tensor(0.0).to(DEVICE)
-            for cls in range(num_cls):
-                sampled_real_feats, _ = train_set.random_sample_from_class(n_samples=BATCH_SIZE_REAL, cls=cls)
-                cls_feat_real = torch.stack(sampled_real_feats).to(DEVICE)
-                cls_lab_real = torch.full((len(sampled_real_feats),), cls, dtype=torch.long).to(DEVICE)
-                cls_feat_syn = feat_syn[cls*NUM_SAMPLES_PER_CLS: (cls+1)*NUM_SAMPLES_PER_CLS]
-                cls_lab_syn = lab_syn[cls*NUM_SAMPLES_PER_CLS: (cls+1)*NUM_SAMPLES_PER_CLS]
+            if OBJECTIVE in ["ihm",]:
+                for cls in range(2):
+                    sampled_real_feats, _ = train_set.random_sample(n_samples=BATCH_SIZE_REAL, match_label=cls)
+                    cls_feat_real = torch.stack(sampled_real_feats).to(DEVICE)
+                    cls_lab_real = torch.full((len(sampled_real_feats),), cls, dtype=torch.long).to(DEVICE)
+                    cls_feat_syn = feat_syn[cls*NUM_SAMPLES_TOTAL//2: (cls+1)*NUM_SAMPLES_TOTAL//2]
+                    cls_lab_syn = lab_syn[cls*NUM_SAMPLES_TOTAL//2: (cls+1)*NUM_SAMPLES_TOTAL//2]
 
-                out_real = net(cls_feat_real)
-                loss_real = criterion(out_real, cls_lab_real)
+                    out_real = net(cls_feat_real)
+                    loss_real = criterion(out_real, cls_lab_real)
+                    grad_real = torch.autograd.grad(loss_real, net_params)
+                    grad_real = list((_.detach().clone() for _ in grad_real))
+
+                    out_syn = net(cls_feat_syn)
+                    loss_syn = criterion(out_syn, cls_lab_syn)
+                    grad_syn = torch.autograd.grad(loss_syn, net_params, create_graph=True) # create_graph: will be used to compute higher-order derivatives
+
+                    dis = torch.tensor(0.0).to(DEVICE)
+
+                    if MATCH_LOSS == "gmatch":
+                        for gidx in range(len(grad_real)):
+                            gr = grad_real[gidx]
+                            gs = grad_syn[gidx]
+                            dis += distance_wb(gr, gs)
+                    elif MATCH_LOSS == "mse":
+                        # compute gradient matching loss, here using MSE, instead of the one proposed in DCwMG because it's too complicated
+                        # dis = torch.tensor(0.0).to(DEVICE)
+                        grad_real_vec = []
+                        grad_syn_vec = []
+                        for gidx in range(len(grad_real)):
+                            grad_real_vec.append(grad_real[gidx].reshape((-1)))
+                            grad_syn_vec.append(grad_syn[gidx].reshape((-1)))
+                        grad_real_vec = torch.cat(grad_real_vec, dim=0)
+                        grad_syn_vec = torch.cat(grad_syn_vec, dim=0)
+                        dis = torch.sum((grad_syn_vec - grad_real_vec)**2)
+                    else:
+                        raise NotImplementedError()
+
+                    loss += dis
+            elif OBJECTIVE in ["los"]:
+                sampled_real_feats, sampled_real_labs = train_set.random_sample(n_samples=BATCH_SIZE_REAL)
+                feat_real = torch.stack(sampled_real_feats).to(DEVICE)
+                lab_real = torch.stack(sampled_real_labs).view(-1, 1).to(DEVICE)
+
+                out_real = net(feat_real)
+                loss_real = criterion(out_real, lab_real)
                 grad_real = torch.autograd.grad(loss_real, net_params)
                 grad_real = list((_.detach().clone() for _ in grad_real))
 
-                out_syn = net(cls_feat_syn)
-                loss_syn = criterion(out_syn, cls_lab_syn)
+                out_syn = net(feat_syn)
+                loss_syn = criterion(out_syn, lab_syn.view(-1, 1))
                 grad_syn = torch.autograd.grad(loss_syn, net_params, create_graph=True) # create_graph: will be used to compute higher-order derivatives
 
                 dis = torch.tensor(0.0).to(DEVICE)
@@ -454,9 +494,7 @@ def main():
                     dis = torch.sum((grad_syn_vec - grad_real_vec)**2)
                 else:
                     raise NotImplementedError()
-
                 loss += dis
-            
             optimizer_feat.zero_grad()
             loss.backward()
             optimizer_feat.step()
@@ -472,6 +510,8 @@ def main():
             feat_syn_train, lab_syn_train = copy.deepcopy(feat_syn.detach()), copy.deepcopy(lab_syn.detach())  # avoid any unaware modification
             for s in range(NUM_UPDT_STEPS_NET):
                 pred_syn_train = net(feat_syn_train)
+                if isinstance(criterion, nn.MSELoss):
+                    lab_syn_train = lab_syn_train.view(-1, 1)
                 train_loss = criterion(pred_syn_train, lab_syn_train)
                 optimizer_net.zero_grad()
                 train_loss.backward()

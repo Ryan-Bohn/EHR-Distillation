@@ -20,6 +20,6 @@ cd ..
 # python -u gm_run.py --spc 50
 
 # coreset
-python -u coreset_run.py --spc 1 --method k-center --nexp 10
-python -u coreset_run.py --spc 10 --method k-center --nexp 10
-python -u coreset_run.py --spc 100 --method k-center --nexp 10
+python -u gm_run.py --n 1 --obj los
+python -u gm_run.py --n 10 --obj los
+python -u gm_run.py --n 100 --obj los
