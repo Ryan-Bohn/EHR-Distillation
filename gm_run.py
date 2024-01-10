@@ -258,15 +258,14 @@ def main():
     NUM_EVAL_EPOCHS = 1000
     NUM_SAMPLED_NETS_EVAL = 4
     LR_DATA = 0.1 # original: 0.1
-    LR_NET = { # original: 0.01
-        "ihm": 0.01,
-        "los": 0.00001,
-        }[OBJECTIVE]
+    LR_NET = 0.01 # original: 0.01
     NUM_INNER_LOOPS = 10
     NUM_UPDT_STEPS_DATA = 1 # s_S
     NUM_UPDT_STEPS_NET = 50 # s_theta
     BATCH_SIZE_REAL = 256
     BATCH_SIZE_SYN = 256
+
+    MAX_NORM = 5
 
     INIT_WEIGHTS_DISTR = [None, "kaiming"][0]
     FIX_INIT_WEIGHTS = False
@@ -366,6 +365,8 @@ def main():
                     loss_syn = criterion(pred_syn, lab_syn)
                     optimizer.zero_grad()
                     loss_syn.backward()
+                    if MAX_NORM > 0:
+                        torch.nn.utils.clip_grad_norm_(net.parameters(), MAX_NORM)  # clip gradients
                     optimizer.step()
             for j, net in enumerate(sampled_nets):
                 print(f"Testing network {j} on real datasets for evaluation...")
@@ -502,11 +503,11 @@ def main():
                 else:
                     raise NotImplementedError()
                 loss += dis
-                print(loss)
             optimizer_feat.zero_grad()
             loss.backward()
+            if MAX_NORM > 0:
+                torch.nn.utils.clip_grad_norm_([feat_syn, lab_syn], MAX_NORM)  # clip gradients
             optimizer_feat.step()
-            print(feat_syn.isnan().any() or lab_syn.isnan().any())
             loss_avg += loss.item()
             # print(f"It = {it}, synthetic image pixels are now distributed within [{torch.min(feat_syn)}, {torch.max(feat_syn)}]")
             
@@ -524,6 +525,8 @@ def main():
                 train_loss = criterion(pred_syn_train, lab_syn_train)
                 optimizer_net.zero_grad()
                 train_loss.backward()
+                if MAX_NORM > 0:
+                    torch.nn.utils.clip_grad_norm_(net.parameters(), MAX_NORM)  # clip gradients
                 optimizer_net.step()
             for name, param in net.named_parameters():
                 if torch.isnan(param).any():

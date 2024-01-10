@@ -4,6 +4,7 @@ import glob
 import random
 from collections import Counter
 import pickle
+import math
 
 import torch
 from torch.utils.data import Dataset
@@ -451,6 +452,8 @@ class Mimic3BenchmarkDataset(Dataset):
             "los_mean": los_mean,
             "los_std": los_std,
         }
+        # contains_invalid = any(math.isnan(item) or math.isinf(item) for item in self.los_labels)
+        # print(f"I have invalid values: {contains_invalid}")
 
     def set_objective(self, objective):
         if objective not in ["ihm", "los"]:
