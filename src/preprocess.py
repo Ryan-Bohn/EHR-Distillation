@@ -32,6 +32,13 @@ import glob
 from datetime import datetime
 from collections import defaultdict
 
+
+def one_hot_encode(column:pd.Series, num_classes:int):
+    one_hot_df = pd.DataFrame(np.zeros((len(column), num_classes), dtype=int), columns=[f'{column.name}_{i}' for i in range(num_classes)])
+    for i in range(num_classes):
+        one_hot_df.iloc[:, i] = (column == i).astype(int)
+    return one_hot_df
+
 class Mimic3BenchmarkDatasetPreprocessor:
     # prepare priori information about mimic3 benchmark dataset (from the original benchmark paper)
     # mimic3 benchmark dataset feature list: [(name, mean_value_from_paper, is_numeric]
@@ -57,13 +64,24 @@ class Mimic3BenchmarkDatasetPreprocessor:
     # form it into dictionary
     feature_dict = {}
     for name, avg, ftype in feature_list:
-        feature_dict[name] = {"avg": avg, "type": ftype}
+        feature_dict[name] = {
+            "avg": avg,
+            "type": ftype,
+            "num_cls": {
+                "capillary_refill_rate": 2,
+                "glascow_coma_scale_eye_opening": 4,
+                "glascow_coma_scale_motor_response": 6,
+                "glascow_coma_scale_total": 13,
+                "glascow_coma_scale_verbal_response": 5,
+            }.get(name, None),
+            "bound": None,
+        }
     # for some columns that may contain abnormally big /small values, add boundaries
     feature_dict["weight"]["bound"] = (0, 300)
 
     sr = 1 # sample rate: 1 hour
     
-    strict = True # raise error
+    strict = False # raise error, if set to False, samples with exception will be ignored and not saved to output
 
     @staticmethod
     def map_categorical_to_numeric(name, value):
@@ -157,6 +175,7 @@ class Mimic3BenchmarkDatasetPreprocessor:
                         "label": ihm_label,
                     },
                     "los": {
+                        "time": los,
                         "masks": los_masks,
                         "labels": los_labels,
                     },
@@ -174,62 +193,85 @@ class Mimic3BenchmarkDatasetPreprocessor:
                 df.columns = df.columns.str.lower().str.replace(' ', '_')
                 # get rid of out-of-boundary numeric values by replacing with nan
                 for name in Mimic3BenchmarkDatasetPreprocessor.feature_dict.keys():
-                    if cls.feature_dict[name]["type"] == "continuous" and "bound" in cls.feature_dict[name].keys():
+                    if cls.feature_dict[name]["type"] == "continuous" and cls.feature_dict[name]["bound"] is not None:
                         lo, hi = cls.feature_dict[name]["bound"]
                         df.loc[(df[name] < lo) | (df[name] > hi), name] = np.nan
                 # map categorical features to numeric labels
                 for name in cls.feature_dict.keys():
                     if cls.feature_dict[name]["type"] == "categorical":
                         df[name] = df[name].map(lambda x: cls.map_categorical_to_numeric(name, x))
-                        # one-hot encoding
-                        if one_hot_categorical_encoding:
-                            one_hot = pd.get_dummies(df[name], prefix=name)
-                            df.drop(name, axis=1, inplace=True)
-                            df = pd.concat([df, one_hot], axis=1)
-                # resample
-                hour_bins = np.arange(0, math.floor(los+1.0)+cls.sr, cls.sr)
-                df["hour_bin"] = pd.cut(df["hours"], bins=hour_bins, labels=False, right=False) # right is not closed
-                df = df.groupby("hour_bin").last() # "hour_bin" becomes index column
-                df = df.reindex(hour_bins[:-1]) # places NaN in hour bins that has no content
-                df.drop(columns=["hours"], inplace=True)
-                # get rid of nan values by 1. forward filling 2. impute with reported avgs in paper
-                df.ffill(inplace=True) # foward fill
-                for name in cls.feature_dict.keys(): # replace remaining nans (at the beginning) with reported avgs in paper
-                    if cls.feature_dict[name]["type"] == "continuous":
-                        df[name].fillna(cls.feature_dict[name]["avg"], inplace=True)
-                    else:
-                        df[name].fillna(cls.map_categorical_to_numeric(name, cls.feature_dict[name]["avg"]), inplace=True)
-                # now df has to be a fully filled time series with all numeric values and no nan
-                assert len(df) == len(los_labels)
-                # append all info into lists
             except Exception as e:
                 print(f"Something is off ({type(e)}) reading {key}, skipping...")
                 if cls.strict:
                     raise e
                 continue
+            # append all info into lists
             keys.append(key)
             dfs.append(df)
             labels.append(label_dict)
         
+        # exit if no valid sample is read
         if len(keys) == 0:
             print("No valid sample processed. Exit.")
             return
-        print("Computing essential dataset statistics (avgs and stds)...")
-        # compute statistics: feature avg & std, dataframe length avg & std
+        
+        # compute original statistics: feature avg for imputing
+        print("Computing original dataset statistics (avgs) from all valid events (lab test records)...")
         stats = {}
-        df_in_one = pd.concat(dfs, ignore_index=True)
+        df_in_one = pd.concat(dfs)
+        df_in_one.drop(columns=["hours"], inplace=True)
+        stats["orig_feature_avg"] = df_in_one.mean().to_dict()
+        # if some feature avg is still nan, replace it with data reported in mimic3 benchmark paper
+        for name in stats["orig_feature_avg"].keys():
+            if pd.isna(stats["orig_feature_avg"][name]):
+                if cls.feature_dict[name]["type"] == "continuous":
+                    stats["orig_feature_avg"][name] = cls.feature_dict[name]["avg"]
+                else: # categorical
+                    stats["orig_feature_avg"][name] = cls.map_categorical_to_numeric(name, cls.feature_dict[name]["avg"])
+
+        # resample
+        print(f"Resampling to {cls.sr}h bins...")
+        for i, df in enumerate(dfs):
+            hour_bins = np.arange(0, math.floor(labels[i]["los"]["time"]/cls.sr+1)+cls.sr, cls.sr)
+            df["hour_bin"] = pd.cut(df["hours"], bins=hour_bins, labels=False, right=False) # right is not closed
+            df = df.groupby("hour_bin").last() # "hour_bin" becomes index column
+            df = df.reindex(hour_bins[:-1]) # places NaN in hour bins that has no content
+            df.drop(columns=["hours"], inplace=True)
+            dfs[i] = df
+
+        # get rid of nan values by 1. forward filling 2. impute with avg values
+        valid_flags = [True] * len(keys)
+        print("Imputing...")
+        for i, df in enumerate(dfs):
+            df.ffill(inplace=True) # foward fill
+            for name in cls.feature_dict.keys(): # replace remaining nans (at the beginning) with reported avgs in paper
+                df[name].fillna(stats["orig_feature_avg"][name], inplace=True)
+            if len(df) != len(labels[i]["los"]["labels"]):
+                print(f'Time series "{keys[i]}" has a mismatched length with its associated los prediction task labels. Ignored.')
+                print(len(df), len(labels[i]["los"]["labels"]), len(labels[i]["decomp"]["labels"]))
+                valid_flags[i] = False
+            # now df has to be a fully filled time series with all numeric values and no nan
+            dfs[i] = df
+
+        # before normalizing, compute statistics after imputation: feature avg & std
+        print("Computing new statistics (avgs and stds) for normalizing...")
+        df_in_one = pd.concat(dfs)
         stats["feature_avg"] = df_in_one.mean().to_dict()
         stats["feature_std"] = df_in_one.std().to_dict()
-        print("Z-score normalizing feature values...")
+        
         # normalizing all columns; for categorical columns, one-hot encode them if required, or simply treat them as numeric ones and also perform normalization
-        for df in dfs:
+        print("Z-score normalizing...")
+        for i, df in enumerate(dfs):
             for name in cls.feature_dict.keys():
                 if cls.feature_dict[name]["type"] == "continuous" or not one_hot_categorical_encoding:
                     df[name] = df[name] - stats["feature_avg"][name]
                     if stats["feature_std"][name] != 0:
                         df[name] = df[name] / stats["feature_std"][name]
                 else: # this column is a categorical column to be one-hot encoded
-                    
+                    one_hot = one_hot_encode(df[name], cls.feature_dict[name]["num_cls"])
+                    df.drop(name, axis=1, inplace=True)
+                    df = pd.concat([df, one_hot], axis=1)
+            dfs[i] = df
 
         # save all data into a list of dictionaries {"key": csv_file_name, "feature": tensor, "label": label_dict}
         print("Packing up data samples...")
@@ -239,8 +281,8 @@ class Mimic3BenchmarkDatasetPreprocessor:
                 "feature": dfs[i],
                 "label": labels[i],
             }
-            data.append(data_dict)
-            print(data_dict)
+            if valid_flags[i]:
+                data.append(data_dict)
         # save stats and data as pickle
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         save_dir = os.path.join(dir, "saves/")

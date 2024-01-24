@@ -60,3 +60,29 @@ class Mimic3BenchmarkMultitaskDataset(Dataset):
     
     def __getitem__(self, idx):
         return self.data[idx]
+    
+
+class Mimic3BenchmarkMultitaskDatasetLOSTaskCollator:
+    def __init__(self, max_seq_len):
+        self.max_seq_len = max_seq_len
+
+    def collate_fn(self, batch):
+        batch_features = []
+        batch_labels = []
+        for data_dict in batch:
+            feature = data_dict["feature"]
+            label = data_dict["label"]
+            feature = torch.tensor(feature.values, dtype=torch.float)
+            los_masks = label["los"]["masks"]
+            los_labels = label["los"]["labels"]
+            for t in range(len(los_masks)):
+                if los_masks[t] == 1:
+                    # Pad features up to the current time bin
+                    padded_features = torch.nn.functional.pad(feature[:t+1], (0, 0, 0, self.max_seq_len - (t+1)))
+                    batch_features.append(padded_features)
+                    batch_labels.append(los_labels[t])
+        # Stack all sequences and labels
+        batch_features = torch.stack(batch_features)
+        batch_labels = torch.tensor(batch_labels, dtype=torch.float)
+        # Apply positional encoding here if not done in __getitem__
+        return batch_features, batch_labels
