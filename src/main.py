@@ -38,7 +38,7 @@ from dataset import Mimic3BenchmarkMultitaskDataset, Mimic3BenchmarkMultitaskDat
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 MAX_SEQ_LEN = 320
-EPOCHS = 0
+EPOCHS = 100
 LR = 0.001
 
 timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -120,11 +120,11 @@ def main():
 
     # train_set = Mimic3BenchmarkMultitaskDataset("../data/mimic3/benchmark/multitask/test/saves/*.pkl") # for quicker code testing
 
-    print(train_set[0])
+    print(f"Datasets loaded.\nTrain set size: {len(train_set)}\nTest set size: {len(test_set)}")
+
     example_df = train_set[0]["feature"]
     # Convert the DataFrame to a tensor
     example_tensor = torch.tensor(example_df.values, dtype=torch.float)
-    print(example_tensor.shape)
     num_features = example_tensor.shape[1]
 
     model = TransformerEncoderForRegression(num_features=num_features, max_seq_len=MAX_SEQ_LEN).to(DEVICE)
@@ -186,13 +186,15 @@ def main():
 
         print(f'Epoch [{epoch+1}/{EPOCHS}], Train Loss: {average_train_loss:.4f}, Eval Loss: {average_eval_loss:.4f}')
 
-    # Save losses
-    with open(os.path.join(OUT_DIR, 'losses.pkl'), 'wb') as f:
-        pickle.dump({'train_losses': train_losses, 'eval_losses': eval_losses}, f)
+        # Save losses
+        with open(os.path.join(OUT_DIR, 'losses.pkl'), 'wb') as f:
+            pickle.dump({'train_losses': train_losses, 'eval_losses': eval_losses}, f)
 
-    # Save the model
-    model_path = os.path.join(OUT_DIR, 'transformer_encoder_regression_model.pth')
-    torch.save(model.state_dict(), model_path)
+        # Save the model
+        model_path = os.path.join(OUT_DIR, 'transformer_encoder_regression_model.pth')
+        torch.save(model.state_dict(), model_path)
+    
+    print(f'Training done, all data saved to "{OUT_DIR}".')
     
 
 if __name__ == "__main__":
