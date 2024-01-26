@@ -82,6 +82,8 @@ class Mimic3BenchmarkMultitaskDatasetLOSTaskCollator:
                     batch_features.append(padded_features)
                     batch_labels.append(los_labels[t])
         # Stack all sequences and labels
+        if len(batch_features) == 0:
+            return None, None
         batch_features = torch.stack(batch_features)
         batch_labels = torch.tensor(batch_labels, dtype=torch.float)
         # Apply positional encoding here if not done in __getitem__

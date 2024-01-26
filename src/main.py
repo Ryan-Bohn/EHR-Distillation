@@ -36,8 +36,9 @@ from preprocess import Mimic3BenchmarkDatasetPreprocessor
 from dataset import Mimic3BenchmarkMultitaskDataset, Mimic3BenchmarkMultitaskDatasetLOSTaskCollator
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+print(f"Using device: {DEVICE}")
 
-MAX_SEQ_LEN = 320
+MAX_SEQ_LEN = 64
 EPOCHS = 100
 LR = 0.001
 
@@ -130,8 +131,8 @@ def main():
     model = TransformerEncoderForRegression(num_features=num_features, max_seq_len=MAX_SEQ_LEN).to(DEVICE)
     
     collator = Mimic3BenchmarkMultitaskDatasetLOSTaskCollator(max_seq_len=MAX_SEQ_LEN)
-    train_loader = DataLoader(train_set, batch_size=32, shuffle=True, collate_fn=collator.collate_fn)
-    test_loader = DataLoader(test_set, batch_size=32, shuffle=True, collate_fn=collator.collate_fn)
+    train_loader = DataLoader(train_set, batch_size=1, shuffle=True, collate_fn=collator.collate_fn)
+    test_loader = DataLoader(test_set, batch_size=1, shuffle=True, collate_fn=collator.collate_fn)
 
     # Loss Function
     criterion = nn.MSELoss()
@@ -149,15 +150,19 @@ def main():
 
     # Training and Evaluation Loop
     for epoch in range(EPOCHS):
+        print(f"Epoch {epoch+1} training...")
         model.train()
         total_train_loss = 0
         for batch_features, batch_labels in train_loader:
             # Move tensors to the specified DEVICE
+            if batch_features is None:
+                continue
             batch_features, batch_labels = batch_features.to(DEVICE), batch_labels.to(DEVICE)
-
+            
+            # print(f"Batch feature shape = {batch_features.shape}")
             # Forward pass
             outputs = model(batch_features)
-            loss = criterion(outputs, batch_labels)
+            loss = criterion(outputs.squeeze(), batch_labels.squeeze())
 
             # Backward and optimize
             optimizer.zero_grad()
@@ -170,15 +175,18 @@ def main():
         train_losses.append(average_train_loss)
 
         # Evaluation
+        print(f"Epoch {epoch+1} evaluating...")
         model.eval()
         total_eval_loss = 0
         with torch.no_grad():
             for batch_features, batch_labels in test_loader:
+                if batch_features is None:
+                    continue
                 # Move tensors to the specified DEVICE
                 batch_features, batch_labels = batch_features.to(DEVICE), batch_labels.to(DEVICE)
 
                 outputs = model(batch_features)
-                loss = criterion(outputs, batch_labels)
+                loss = criterion(outputs.squeeze(), batch_labels.squeeze())
                 total_eval_loss += loss.item()
 
         average_eval_loss = total_eval_loss / len(test_loader)
