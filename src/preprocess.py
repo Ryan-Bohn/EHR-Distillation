@@ -34,6 +34,10 @@ from collections import defaultdict
 
 
 def one_hot_encode(column:pd.Series, num_classes:int):
+    """
+    Encode a pandas series (categorical feature column with integer labels starting from 0) into one-hot representation.
+    Return a dataframe.
+    """
     one_hot_df = pd.DataFrame(np.zeros((len(column), num_classes), dtype=int), columns=[f'{column.name}_{i}' for i in range(num_classes)])
     for i in range(num_classes):
         one_hot_df.iloc[:, i] = (column == i).astype(int)
@@ -78,10 +82,6 @@ class Mimic3BenchmarkDatasetPreprocessor:
         }
     # for some columns that may contain abnormally big /small values, add boundaries
     feature_dict["weight"]["bound"] = (0, 300)
-
-    sr = 1 # sample rate: 1 hour
-    
-    strict = False # raise error, if set to False, samples with exception will be ignored and not saved to output
 
     @staticmethod
     def map_categorical_to_numeric(name, value):
@@ -128,9 +128,15 @@ class Mimic3BenchmarkDatasetPreprocessor:
             return np.nan
         else: # this is not a categorical column at all
             return value
+        
+    def __init__(self, sr=1., tensor=True, one_hot=False, strict=False):
+        self.sr = sr
+        self.tensor = tensor # whether or not save processed features as torch tensor
+        self.one_hot = one_hot # whether or not expand categorical feature columns (integer labels) into one-hot representations
+        self.strict = strict # if set to False, samples with exception will be ignored and not saved to output; if True, exception will be raised
+        
 
-    @classmethod
-    def preprocess(cls, dir, one_hot_categorical_encoding=False):
+    def preprocess(self, dir):
         data = []
         print(f"Start preprocessing data under {dir}")
         episode_paths = glob.glob(os.path.join(dir, "*_episode*_timeseries.csv"))
@@ -193,16 +199,16 @@ class Mimic3BenchmarkDatasetPreprocessor:
                 df.columns = df.columns.str.lower().str.replace(' ', '_')
                 # get rid of out-of-boundary numeric values by replacing with nan
                 for name in Mimic3BenchmarkDatasetPreprocessor.feature_dict.keys():
-                    if cls.feature_dict[name]["type"] == "continuous" and cls.feature_dict[name]["bound"] is not None:
-                        lo, hi = cls.feature_dict[name]["bound"]
+                    if self.feature_dict[name]["type"] == "continuous" and self.feature_dict[name]["bound"] is not None:
+                        lo, hi = self.feature_dict[name]["bound"]
                         df.loc[(df[name] < lo) | (df[name] > hi), name] = np.nan
                 # map categorical features to numeric labels
-                for name in cls.feature_dict.keys():
-                    if cls.feature_dict[name]["type"] == "categorical":
-                        df[name] = df[name].map(lambda x: cls.map_categorical_to_numeric(name, x))
+                for name in self.feature_dict.keys():
+                    if self.feature_dict[name]["type"] == "categorical":
+                        df[name] = df[name].map(lambda x: self.map_categorical_to_numeric(name, x))
             except Exception as e:
                 print(f"Something is off ({type(e)}) reading {key}, skipping...")
-                if cls.strict:
+                if self.strict:
                     raise e
                 continue
             # append all info into lists
@@ -224,15 +230,15 @@ class Mimic3BenchmarkDatasetPreprocessor:
         # if some feature avg is still nan, replace it with data reported in mimic3 benchmark paper
         for name in stats["orig_feature_avg"].keys():
             if pd.isna(stats["orig_feature_avg"][name]):
-                if cls.feature_dict[name]["type"] == "continuous":
-                    stats["orig_feature_avg"][name] = cls.feature_dict[name]["avg"]
+                if self.feature_dict[name]["type"] == "continuous":
+                    stats["orig_feature_avg"][name] = self.feature_dict[name]["avg"]
                 else: # categorical
-                    stats["orig_feature_avg"][name] = cls.map_categorical_to_numeric(name, cls.feature_dict[name]["avg"])
+                    stats["orig_feature_avg"][name] = self.map_categorical_to_numeric(name, self.feature_dict[name]["avg"])
 
         # resample
-        print(f"Resampling to {cls.sr}h bins...")
+        print(f"Resampling to {self.sr}h bins...")
         for i, df in enumerate(dfs):
-            hour_bins = np.arange(0, math.floor(labels[i]["los"]["time"]/cls.sr+1)+cls.sr, cls.sr)
+            hour_bins = np.arange(0, math.floor(labels[i]["los"]["time"]/self.sr+1)+self.sr, self.sr)
             df["hour_bin"] = pd.cut(df["hours"], bins=hour_bins, labels=False, right=False) # right is not closed
             df = df.groupby("hour_bin").last() # "hour_bin" becomes index column
             df = df.reindex(hour_bins[:-1]) # places NaN in hour bins that has no content
@@ -244,7 +250,7 @@ class Mimic3BenchmarkDatasetPreprocessor:
         print("Imputing...")
         for i, df in enumerate(dfs):
             df.ffill(inplace=True) # foward fill
-            for name in cls.feature_dict.keys(): # replace remaining nans (at the beginning) with reported avgs in paper
+            for name in self.feature_dict.keys(): # replace remaining nans (at the beginning) with reported avgs in paper
                 df[name].fillna(stats["orig_feature_avg"][name], inplace=True)
             if len(df) != len(labels[i]["los"]["labels"]):
                 print(f'Time series "{keys[i]}" has a mismatched length with its associated los prediction task labels. Ignored.')
@@ -262,13 +268,13 @@ class Mimic3BenchmarkDatasetPreprocessor:
         # normalizing all columns; for categorical columns, one-hot encode them if required, or simply treat them as numeric ones and also perform normalization
         print("Z-score normalizing...")
         for i, df in enumerate(dfs):
-            for name in cls.feature_dict.keys():
-                if cls.feature_dict[name]["type"] == "continuous" or not one_hot_categorical_encoding:
+            for name in self.feature_dict.keys():
+                if self.feature_dict[name]["type"] == "continuous" or not self.one_hot:
                     df[name] = df[name] - stats["feature_avg"][name]
                     if stats["feature_std"][name] != 0:
                         df[name] = df[name] / stats["feature_std"][name]
                 else: # this column is a categorical column to be one-hot encoded
-                    one_hot = one_hot_encode(df[name], cls.feature_dict[name]["num_cls"])
+                    one_hot = one_hot_encode(df[name], self.feature_dict[name]["num_cls"])
                     df.drop(name, axis=1, inplace=True)
                     df = pd.concat([df, one_hot], axis=1)
             dfs[i] = df
@@ -278,7 +284,7 @@ class Mimic3BenchmarkDatasetPreprocessor:
         for i, key in enumerate(keys):
             data_dict = {
                 "key": key,
-                "feature": dfs[i],
+                "feature": torch.tensor(dfs[i].values, dtype=torch.float) if self.tensor else dfs[i],
                 "label": labels[i],
             }
             if valid_flags[i]:
@@ -291,8 +297,8 @@ class Mimic3BenchmarkDatasetPreprocessor:
         with open(save_path, 'wb') as file:
             pickle.dump({
                 "info": {
-                    "sr": cls.sr,
-                    "one_hot_encoded": one_hot_categorical_encoding,
+                    "sr": self.sr,
+                    "one_hot": self.one_hot,
                 },
                 "data": data,
                 "stats": stats,
@@ -311,6 +317,7 @@ def parse_args():
     
     parser.add_argument("--name", "-n", type=str, required=True, help='Dataset name. Choose from ["mimic3benchmark",]')
     parser.add_argument("--dir", "-d", type=str, required=True, help="Directory of that chosen dataset.")
+    parser.add_argument("--sr", "-s", type=float, default=1., help="Re-sampling rate in hours.")
     parser.add_argument("--one_hot", "-o", action="store_true", help="One-hot encode the catrgorical feature columns.")
 
     args = parser.parse_args()
@@ -327,8 +334,8 @@ def main():
     args = parse_args()
 
     if args.name == "mimic3benchmark":
-        Mimic3BenchmarkDatasetPreprocessor.preprocess(args.dir, one_hot_categorical_encoding=args.one_hot)
-
+        preprocessor = Mimic3BenchmarkDatasetPreprocessor(sr=args.sr, one_hot=args.one_hot)
+        preprocessor.preprocess(args.dir)
 
 if __name__ == "__main__":
     main()
