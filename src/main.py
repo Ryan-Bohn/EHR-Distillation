@@ -119,7 +119,9 @@ def main():
             for batch_features, batch_key_padding_masks, batch_masks, batch_labels in test_loader:
                 # Move tensors to the specified DEVICE
                 batch_features, batch_key_padding_masks, batch_masks, batch_labels = batch_features.to(DEVICE), batch_key_padding_masks.to(DEVICE), batch_masks.to(DEVICE), batch_labels.to(DEVICE)
-            
+                
+                # Forward pass
+                outputs = model(batch_features, batch_key_padding_masks)
                 masks = batch_masks == 1
                 loss = criterion(outputs[masks].squeeze(), batch_labels[masks].squeeze())
                 total_eval_loss += loss.item()
