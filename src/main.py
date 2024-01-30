@@ -116,7 +116,7 @@ def main():
         total_eval_loss = 0
         total_eval_samples = 0
         with torch.no_grad():
-            for batch_features, batch_labels in test_loader:
+            for batch_features, batch_key_padding_masks, batch_masks, batch_labels in test_loader:
                 # Move tensors to the specified DEVICE
                 batch_features, batch_key_padding_masks, batch_masks, batch_labels = batch_features.to(DEVICE), batch_key_padding_masks.to(DEVICE), batch_masks.to(DEVICE), batch_labels.to(DEVICE)
             
