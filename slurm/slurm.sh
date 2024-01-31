@@ -25,4 +25,4 @@ cd ..
 # python -u gm_run.py --n 100 --obj los
 
 cd src
-python -u main.py
+python -u main.py --exp_type fit --tasks ihm

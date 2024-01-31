@@ -365,7 +365,7 @@ def fit_ihm():
         eval_preds = []
         eval_true_labels = []
         with torch.no_grad():
-            for data in train_loader:
+            for data in test_loader:
                 # Move tensors to the specified DEVICE
                 features, padding_masks, ihm_pos, ihm_mask, ihm_label = (
                 data["features"].to(DEVICE),
