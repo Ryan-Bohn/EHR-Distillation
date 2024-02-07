@@ -48,8 +48,8 @@ print(f"Using device: {DEVICE}")
 
 MAX_SEQ_LEN = 320
 EPOCHS = 100
-LR = 0.001
-WD = 0.001
+LR = 1e-3
+WD = 1e-4
 DROPOUT = 0.1
 BATCH_SIZE = 256
 EMBED_DIM = 32
@@ -183,7 +183,7 @@ def main():
             # Save the model
             model_path = os.path.join(OUT_DIR, 'transformer_encoder_regression_model.pth')
             torch.save(model.state_dict(), model_path)
-    
+
     print(f'Training done, all data saved to "{OUT_DIR}".')
 
 
@@ -423,13 +423,24 @@ def fit_ihm():
         if not args.no_save:
             # Save losses
             with open(os.path.join(OUT_DIR, 'losses.pkl'), 'wb') as f:
-                pickle.dump({'train_losses': train_losses, 'eval_losses': eval_losses}, f)
+                pickle.dump({
+                    'train_losses': train_losses,
+                    'eval_losses': eval_losses,
+                    'train_auroc_scores': train_auroc_scores,
+                    'eval_auroc_scores': eval_auroc_scores,
+                    }, f)
 
             # Save the model
             model_path = os.path.join(OUT_DIR, 'transformer_encoder_regression_model.pth')
             torch.save(model.state_dict(), model_path)
     
     print(f'Training done, all data saved to "{OUT_DIR}".')
+    best_train_epoch, best_train_score = max(enumerate(train_auroc_scores), key=lambda x: x[1])
+    best_train_epoch += 1
+    best_eval_epoch, best_eval_score = max(enumerate(eval_auroc_scores), key=lambda x: x[1])
+    best_eval_epoch += 1
+    print(f'Best training score: {best_train_score} (epoch {best_train_epoch})')
+    print(f'Best evaluation score: {best_eval_score} (epoch {best_eval_epoch})')
 
 if __name__ == "__main__":
     fit_ihm()

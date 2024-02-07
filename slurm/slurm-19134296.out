@@ -1,0 +1,913 @@
+==========================================
+SLURM_JOB_ID = 19134296
+SLURM_JOB_NODELIST = b01-20
+TMPDIR = /tmp/SLURM_19134296
+==========================================
+Restoring modules from user's default
+Using device: cuda
+Loading dataset from "../data/mimic3/benchmark/multitask/train/saves/20240207-003942.pkl"...
+Dataset loaded. Info: {'sr': 1.0, 'one_hot': False}
+Loading dataset from "../data/mimic3/benchmark/multitask/test/saves/20240207-004013.pkl"...
+Dataset loaded. Info: {'sr': 1.0, 'one_hot': False}
+Datasets loaded. Train set size: 35571; Test set size: 6273
+Epoch 1 training...
+Epoch 1 evaluating...
+---------Epoch [1/100]----------
+Train samples: 17902
+Train loss: 0.0026
+Train AUROC score: 0.7705
+Eval samples: 3235
+Eval loss: 0.0022
+Eval AUROC score: 0.8236
+Epoch 2 training...
+Epoch 2 evaluating...
+---------Epoch [2/100]----------
+Train samples: 17902
+Train loss: 0.0024
+Train AUROC score: 0.8147
+Eval samples: 3235
+Eval loss: 0.0022
+Eval AUROC score: 0.8316
+Epoch 3 training...
+Epoch 3 evaluating...
+---------Epoch [3/100]----------
+Train samples: 17902
+Train loss: 0.0024
+Train AUROC score: 0.8291
+Eval samples: 3235
+Eval loss: 0.0022
+Eval AUROC score: 0.8351
+Epoch 4 training...
+Epoch 4 evaluating...
+---------Epoch [4/100]----------
+Train samples: 17902
+Train loss: 0.0024
+Train AUROC score: 0.8336
+Eval samples: 3235
+Eval loss: 0.0021
+Eval AUROC score: 0.8410
+Epoch 5 training...
+Epoch 5 evaluating...
+---------Epoch [5/100]----------
+Train samples: 17902
+Train loss: 0.0023
+Train AUROC score: 0.8355
+Eval samples: 3235
+Eval loss: 0.0021
+Eval AUROC score: 0.8451
+Epoch 6 training...
+Epoch 6 evaluating...
+---------Epoch [6/100]----------
+Train samples: 17902
+Train loss: 0.0023
+Train AUROC score: 0.8431
+Eval samples: 3235
+Eval loss: 0.0021
+Eval AUROC score: 0.8440
+Epoch 7 training...
+Epoch 7 evaluating...
+---------Epoch [7/100]----------
+Train samples: 17902
+Train loss: 0.0023
+Train AUROC score: 0.8433
+Eval samples: 3235
+Eval loss: 0.0021
+Eval AUROC score: 0.8475
+Epoch 8 training...
+Epoch 8 evaluating...
+---------Epoch [8/100]----------
+Train samples: 17902
+Train loss: 0.0023
+Train AUROC score: 0.8437
+Eval samples: 3235
+Eval loss: 0.0021
+Eval AUROC score: 0.8472
+Epoch 9 training...
+Epoch 9 evaluating...
+---------Epoch [9/100]----------
+Train samples: 17902
+Train loss: 0.0023
+Train AUROC score: 0.8484
+Eval samples: 3235
+Eval loss: 0.0021
+Eval AUROC score: 0.8516
+Epoch 10 training...
+Epoch 10 evaluating...
+---------Epoch [10/100]----------
+Train samples: 17902
+Train loss: 0.0023
+Train AUROC score: 0.8476
+Eval samples: 3235
+Eval loss: 0.0021
+Eval AUROC score: 0.8522
+Epoch 11 training...
+Epoch 11 evaluating...
+---------Epoch [11/100]----------
+Train samples: 17902
+Train loss: 0.0023
+Train AUROC score: 0.8500
+Eval samples: 3235
+Eval loss: 0.0021
+Eval AUROC score: 0.8460
+Epoch 12 training...
+Epoch 12 evaluating...
+---------Epoch [12/100]----------
+Train samples: 17902
+Train loss: 0.0023
+Train AUROC score: 0.8502
+Eval samples: 3235
+Eval loss: 0.0021
+Eval AUROC score: 0.8540
+Epoch 13 training...
+Epoch 13 evaluating...
+---------Epoch [13/100]----------
+Train samples: 17902
+Train loss: 0.0023
+Train AUROC score: 0.8514
+Eval samples: 3235
+Eval loss: 0.0021
+Eval AUROC score: 0.8521
+Epoch 14 training...
+Epoch 14 evaluating...
+---------Epoch [14/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8529
+Eval samples: 3235
+Eval loss: 0.0021
+Eval AUROC score: 0.8521
+Epoch 15 training...
+Epoch 15 evaluating...
+---------Epoch [15/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8541
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8531
+Epoch 16 training...
+Epoch 16 evaluating...
+---------Epoch [16/100]----------
+Train samples: 17902
+Train loss: 0.0023
+Train AUROC score: 0.8524
+Eval samples: 3235
+Eval loss: 0.0021
+Eval AUROC score: 0.8509
+Epoch 17 training...
+Epoch 17 evaluating...
+---------Epoch [17/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8551
+Eval samples: 3235
+Eval loss: 0.0021
+Eval AUROC score: 0.8455
+Epoch 18 training...
+Epoch 18 evaluating...
+---------Epoch [18/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8534
+Eval samples: 3235
+Eval loss: 0.0021
+Eval AUROC score: 0.8541
+Epoch 19 training...
+Epoch 19 evaluating...
+---------Epoch [19/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8545
+Eval samples: 3235
+Eval loss: 0.0021
+Eval AUROC score: 0.8538
+Epoch 20 training...
+Epoch 20 evaluating...
+---------Epoch [20/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8557
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8545
+Epoch 21 training...
+Epoch 21 evaluating...
+---------Epoch [21/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8555
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8547
+Epoch 22 training...
+Epoch 22 evaluating...
+---------Epoch [22/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8583
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8555
+Epoch 23 training...
+Epoch 23 evaluating...
+---------Epoch [23/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8570
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8556
+Epoch 24 training...
+Epoch 24 evaluating...
+---------Epoch [24/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8553
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8557
+Epoch 25 training...
+Epoch 25 evaluating...
+---------Epoch [25/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8588
+Eval samples: 3235
+Eval loss: 0.0021
+Eval AUROC score: 0.8528
+Epoch 26 training...
+Epoch 26 evaluating...
+---------Epoch [26/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8591
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8558
+Epoch 27 training...
+Epoch 27 evaluating...
+---------Epoch [27/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8606
+Eval samples: 3235
+Eval loss: 0.0021
+Eval AUROC score: 0.8479
+Epoch 28 training...
+Epoch 28 evaluating...
+---------Epoch [28/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8590
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8566
+Epoch 29 training...
+Epoch 29 evaluating...
+---------Epoch [29/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8609
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8563
+Epoch 30 training...
+Epoch 30 evaluating...
+---------Epoch [30/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8607
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8570
+Epoch 31 training...
+Epoch 31 evaluating...
+---------Epoch [31/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8605
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8542
+Epoch 32 training...
+Epoch 32 evaluating...
+---------Epoch [32/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8621
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8570
+Epoch 33 training...
+Epoch 33 evaluating...
+---------Epoch [33/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8621
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8564
+Epoch 34 training...
+Epoch 34 evaluating...
+---------Epoch [34/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8627
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8558
+Epoch 35 training...
+Epoch 35 evaluating...
+---------Epoch [35/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8625
+Eval samples: 3235
+Eval loss: 0.0021
+Eval AUROC score: 0.8557
+Epoch 36 training...
+Epoch 36 evaluating...
+---------Epoch [36/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8626
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8567
+Epoch 37 training...
+Epoch 37 evaluating...
+---------Epoch [37/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8625
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8555
+Epoch 38 training...
+Epoch 38 evaluating...
+---------Epoch [38/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8634
+Eval samples: 3235
+Eval loss: 0.0021
+Eval AUROC score: 0.8559
+Epoch 39 training...
+Epoch 39 evaluating...
+---------Epoch [39/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8640
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8546
+Epoch 40 training...
+Epoch 40 evaluating...
+---------Epoch [40/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8633
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8521
+Epoch 41 training...
+Epoch 41 evaluating...
+---------Epoch [41/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8641
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8574
+Epoch 42 training...
+Epoch 42 evaluating...
+---------Epoch [42/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8644
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8567
+Epoch 43 training...
+Epoch 43 evaluating...
+---------Epoch [43/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8636
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8550
+Epoch 44 training...
+Epoch 44 evaluating...
+---------Epoch [44/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8631
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8551
+Epoch 45 training...
+Epoch 45 evaluating...
+---------Epoch [45/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8645
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8575
+Epoch 46 training...
+Epoch 46 evaluating...
+---------Epoch [46/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8645
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8572
+Epoch 47 training...
+Epoch 47 evaluating...
+---------Epoch [47/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8646
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8552
+Epoch 48 training...
+Epoch 48 evaluating...
+---------Epoch [48/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8644
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8538
+Epoch 49 training...
+Epoch 49 evaluating...
+---------Epoch [49/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8647
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8559
+Epoch 50 training...
+Epoch 50 evaluating...
+---------Epoch [50/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8655
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8592
+Epoch 51 training...
+Epoch 51 evaluating...
+---------Epoch [51/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8663
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8574
+Epoch 52 training...
+Epoch 52 evaluating...
+---------Epoch [52/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8652
+Eval samples: 3235
+Eval loss: 0.0021
+Eval AUROC score: 0.8503
+Epoch 53 training...
+Epoch 53 evaluating...
+---------Epoch [53/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8668
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8506
+Epoch 54 training...
+Epoch 54 evaluating...
+---------Epoch [54/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8659
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8550
+Epoch 55 training...
+Epoch 55 evaluating...
+---------Epoch [55/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8671
+Eval samples: 3235
+Eval loss: 0.0021
+Eval AUROC score: 0.8527
+Epoch 56 training...
+Epoch 56 evaluating...
+---------Epoch [56/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8674
+Eval samples: 3235
+Eval loss: 0.0021
+Eval AUROC score: 0.8533
+Epoch 57 training...
+Epoch 57 evaluating...
+---------Epoch [57/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8654
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8568
+Epoch 58 training...
+Epoch 58 evaluating...
+---------Epoch [58/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8668
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8551
+Epoch 59 training...
+Epoch 59 evaluating...
+---------Epoch [59/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8672
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8578
+Epoch 60 training...
+Epoch 60 evaluating...
+---------Epoch [60/100]----------
+Train samples: 17902
+Train loss: 0.0022
+Train AUROC score: 0.8655
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8580
+Epoch 61 training...
+Epoch 61 evaluating...
+---------Epoch [61/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8682
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8559
+Epoch 62 training...
+Epoch 62 evaluating...
+---------Epoch [62/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8669
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8568
+Epoch 63 training...
+Epoch 63 evaluating...
+---------Epoch [63/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8677
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8571
+Epoch 64 training...
+Epoch 64 evaluating...
+---------Epoch [64/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8668
+Eval samples: 3235
+Eval loss: 0.0021
+Eval AUROC score: 0.8548
+Epoch 65 training...
+Epoch 65 evaluating...
+---------Epoch [65/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8677
+Eval samples: 3235
+Eval loss: 0.0021
+Eval AUROC score: 0.8556
+Epoch 66 training...
+Epoch 66 evaluating...
+---------Epoch [66/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8660
+Eval samples: 3235
+Eval loss: 0.0021
+Eval AUROC score: 0.8552
+Epoch 67 training...
+Epoch 67 evaluating...
+---------Epoch [67/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8674
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8570
+Epoch 68 training...
+Epoch 68 evaluating...
+---------Epoch [68/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8674
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8576
+Epoch 69 training...
+Epoch 69 evaluating...
+---------Epoch [69/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8681
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8529
+Epoch 70 training...
+Epoch 70 evaluating...
+---------Epoch [70/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8684
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8548
+Epoch 71 training...
+Epoch 71 evaluating...
+---------Epoch [71/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8691
+Eval samples: 3235
+Eval loss: 0.0021
+Eval AUROC score: 0.8574
+Epoch 72 training...
+Epoch 72 evaluating...
+---------Epoch [72/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8680
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8578
+Epoch 73 training...
+Epoch 73 evaluating...
+---------Epoch [73/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8683
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8566
+Epoch 74 training...
+Epoch 74 evaluating...
+---------Epoch [74/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8703
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8571
+Epoch 75 training...
+Epoch 75 evaluating...
+---------Epoch [75/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8691
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8558
+Epoch 76 training...
+Epoch 76 evaluating...
+---------Epoch [76/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8685
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8590
+Epoch 77 training...
+Epoch 77 evaluating...
+---------Epoch [77/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8705
+Eval samples: 3235
+Eval loss: 0.0021
+Eval AUROC score: 0.8540
+Epoch 78 training...
+Epoch 78 evaluating...
+---------Epoch [78/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8688
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8563
+Epoch 79 training...
+Epoch 79 evaluating...
+---------Epoch [79/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8692
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8581
+Epoch 80 training...
+Epoch 80 evaluating...
+---------Epoch [80/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8695
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8596
+Epoch 81 training...
+Epoch 81 evaluating...
+---------Epoch [81/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8689
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8541
+Epoch 82 training...
+Epoch 82 evaluating...
+---------Epoch [82/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8708
+Eval samples: 3235
+Eval loss: 0.0021
+Eval AUROC score: 0.8534
+Epoch 83 training...
+Epoch 83 evaluating...
+---------Epoch [83/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8703
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8486
+Epoch 84 training...
+Epoch 84 evaluating...
+---------Epoch [84/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8703
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8550
+Epoch 85 training...
+Epoch 85 evaluating...
+---------Epoch [85/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8705
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8530
+Epoch 86 training...
+Epoch 86 evaluating...
+---------Epoch [86/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8707
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8559
+Epoch 87 training...
+Epoch 87 evaluating...
+---------Epoch [87/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8708
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8578
+Epoch 88 training...
+Epoch 88 evaluating...
+---------Epoch [88/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8702
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8538
+Epoch 89 training...
+Epoch 89 evaluating...
+---------Epoch [89/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8698
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8571
+Epoch 90 training...
+Epoch 90 evaluating...
+---------Epoch [90/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8718
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8522
+Epoch 91 training...
+Epoch 91 evaluating...
+---------Epoch [91/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8712
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8551
+Epoch 92 training...
+Epoch 92 evaluating...
+---------Epoch [92/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8712
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8566
+Epoch 93 training...
+Epoch 93 evaluating...
+---------Epoch [93/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8710
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8562
+Epoch 94 training...
+Epoch 94 evaluating...
+---------Epoch [94/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8717
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8535
+Epoch 95 training...
+Epoch 95 evaluating...
+---------Epoch [95/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8693
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8553
+Epoch 96 training...
+Epoch 96 evaluating...
+---------Epoch [96/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8717
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8558
+Epoch 97 training...
+Epoch 97 evaluating...
+---------Epoch [97/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8726
+Eval samples: 3235
+Eval loss: 0.0021
+Eval AUROC score: 0.8529
+Epoch 98 training...
+Epoch 98 evaluating...
+---------Epoch [98/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8713
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8570
+Epoch 99 training...
+Epoch 99 evaluating...
+---------Epoch [99/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8725
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8531
+Epoch 100 training...
+Epoch 100 evaluating...
+---------Epoch [100/100]----------
+Train samples: 17902
+Train loss: 0.0021
+Train AUROC score: 0.8728
+Eval samples: 3235
+Eval loss: 0.0020
+Eval AUROC score: 0.8545
+Training done, all data saved to "../saved_data/20240207-011720".
