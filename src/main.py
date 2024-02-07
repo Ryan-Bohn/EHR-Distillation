@@ -50,7 +50,7 @@ MAX_SEQ_LEN = 320
 EPOCHS = 100
 LR = 1e-3
 WD = 1e-4
-DROPOUT = 0.1
+DROPOUT = 0.2
 BATCH_SIZE = 256
 EMBED_DIM = 32
 NUM_HEADS = 4
@@ -284,6 +284,18 @@ def fit_ihm():
 
     if args.exp_type != "fit":
         raise NotImplementedError()
+
+    print("Starting experiment...")
+    # print hyper params
+    print(f"MAX_SEQ_LEN = {MAX_SEQ_LEN}")
+    print(f"EPOCHS = {EPOCHS}")
+    print(f"LR = {LR}")
+    print(f"WD = {WD}")
+    print(f"DROPOUT = {DROPOUT}")
+    print(f"BATCH_SIZE = {BATCH_SIZE}")
+    print(f"EMBED_DIM = {EMBED_DIM}")
+    print(f"NUM_HEADS = {NUM_HEADS}")
+    print(f"NUM_LAYERS = {NUM_LAYERS}")
     
     # load datasets
     train_set = Mimic3BenchmarkMultitaskDataset("../data/mimic3/benchmark/multitask/train/saves/*.pkl") # if passing a glob, it'll load the latest save satisfying the glob
@@ -410,7 +422,7 @@ def fit_ihm():
         average_eval_loss = total_eval_loss / total_eval_samples
         eval_losses.append(average_eval_loss)
         eval_auroc_score = roc_auc_score(eval_true_labels, eval_preds)
-        eval_auroc_scores.append(train_auroc_score)
+        eval_auroc_scores.append(eval_auroc_score)
 
         print(f"---------Epoch [{epoch+1}/{EPOCHS}]----------")
         print(f"Train samples: {total_train_samples}")
