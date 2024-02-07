@@ -136,7 +136,11 @@ class Mimic3BenchmarkDatasetPreprocessor:
         self.strict = strict # if set to False, samples with exception will be ignored and not saved to output; if True, exception will be raised
         
 
-    def preprocess(self, dir):
+    def preprocess(self, dir, stats:dict=None):
+        """
+        If stats dictionary is None, compute avgs and stds (used for imputation and normalization) of the current set;
+        Else, use the external stats dictionary (that probably comes from another set) to impute and normalize.
+        """
         data = []
         print(f"Start preprocessing data under {dir}")
         episode_paths = glob.glob(os.path.join(dir, "*_episode*_timeseries.csv"))
@@ -222,18 +226,26 @@ class Mimic3BenchmarkDatasetPreprocessor:
             return
         
         # compute original statistics: feature avg for imputing
-        print("Computing original dataset statistics (avgs) from all valid events (lab test records)...")
-        stats = {}
-        df_in_one = pd.concat(dfs)
-        df_in_one.drop(columns=["hours"], inplace=True)
-        stats["orig_feature_avg"] = df_in_one.mean().to_dict()
-        # if some feature avg is still nan, replace it with data reported in mimic3 benchmark paper
-        for name in stats["orig_feature_avg"].keys():
-            if pd.isna(stats["orig_feature_avg"][name]):
-                if self.feature_dict[name]["type"] == "continuous":
-                    stats["orig_feature_avg"][name] = self.feature_dict[name]["avg"]
-                else: # categorical
-                    stats["orig_feature_avg"][name] = self.map_categorical_to_numeric(name, self.feature_dict[name]["avg"])
+        
+        external_stats_flag = False
+        if stats is not None:
+            external_stats_flag = True
+            print("Using external statistics")
+        else:
+            print("Computing original dataset statistics (avgs) before imputing from all valid events (lab test results)...")
+        
+        if not external_stats_flag:
+            stats = {}
+            df_in_one = pd.concat(dfs)
+            df_in_one.drop(columns=["hours"], inplace=True)
+            stats["orig_feature_avg"] = df_in_one.mean().to_dict()
+            # if some feature avg is still nan, replace it with data reported in mimic3 benchmark paper
+            for name in stats["orig_feature_avg"].keys():
+                if pd.isna(stats["orig_feature_avg"][name]):
+                    if self.feature_dict[name]["type"] == "continuous":
+                        stats["orig_feature_avg"][name] = self.feature_dict[name]["avg"]
+                    else: # categorical
+                        stats["orig_feature_avg"][name] = self.map_categorical_to_numeric(name, self.feature_dict[name]["avg"])
 
         # resample
         print(f"Resampling to {self.sr}h bins...")
@@ -260,10 +272,11 @@ class Mimic3BenchmarkDatasetPreprocessor:
             dfs[i] = df
 
         # before normalizing, compute statistics after imputation: feature avg & std
-        print("Computing new statistics (avgs and stds) for normalizing...")
-        df_in_one = pd.concat(dfs)
-        stats["feature_avg"] = df_in_one.mean().to_dict()
-        stats["feature_std"] = df_in_one.std().to_dict()
+        if not external_stats_flag:
+            print("Computing new statistics (avgs and stds) for normalizing...")
+            df_in_one = pd.concat(dfs)
+            stats["feature_avg"] = df_in_one.mean().to_dict()
+            stats["feature_std"] = df_in_one.std().to_dict()
         
         # normalizing all columns; for categorical columns, one-hot encode them if required, or simply treat them as numeric ones and also perform normalization
         print("Z-score normalizing...")
@@ -310,13 +323,14 @@ class Mimic3BenchmarkDatasetPreprocessor:
         print(f'Max time series length in this dataset: {np.max(df_lengths)}')
         print(f'Average time series length in this dataset: {np.mean(df_lengths):.2f}')
         print(f'Standard deviation of time series length in this dataset: {np.std(df_lengths):.2f}')
+        return stats
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Preprocessor here.")
     
     parser.add_argument("--name", "-n", type=str, required=True, help='Dataset name. Choose from ["mimic3benchmark",]')
-    parser.add_argument("--dir", "-d", type=str, required=True, help="Directory of that chosen dataset.")
+    parser.add_argument("--dir", "-d", type=str, required=True, help="Root directory of that chosen dataset.")
     parser.add_argument("--sr", "-s", type=float, default=1., help="Re-sampling rate in hours.")
     parser.add_argument("--one_hot", "-o", action="store_true", help="One-hot encode the catrgorical feature columns.")
 
@@ -335,7 +349,8 @@ def main():
 
     if args.name == "mimic3benchmark":
         preprocessor = Mimic3BenchmarkDatasetPreprocessor(sr=args.sr, one_hot=args.one_hot)
-        preprocessor.preprocess(args.dir)
+        train_stats = preprocessor.preprocess(os.path.join(args.dir, "train/"))
+        preprocessor.preprocess(os.path.join(args.dir, "test/"), stats=train_stats)
 
 if __name__ == "__main__":
     main()

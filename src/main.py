@@ -49,7 +49,13 @@ print(f"Using device: {DEVICE}")
 MAX_SEQ_LEN = 320
 EPOCHS = 100
 LR = 0.001
+WD = 0.001
+DROPOUT = 0.1
 BATCH_SIZE = 256
+EMBED_DIM = 32
+NUM_HEADS = 4
+NUM_LAYERS = 3
+
 
 timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
 OUT_DIR = os.path.join("../saved_data/", timestamp)
@@ -294,13 +300,21 @@ def fit_ihm():
     test_loader = DataLoader(test_set, batch_size=BATCH_SIZE, shuffle=True, collate_fn=collator.collate_fn)
     
     # get learner model
-    model = TransformerEncoderForTimeStepWiseClassification(num_features=num_features, num_classes=2, max_seq_len=MAX_SEQ_LEN).to(DEVICE)
+    model = TransformerEncoderForTimeStepWiseClassification(
+        num_features=num_features,
+        num_classes=2,
+        max_seq_len=MAX_SEQ_LEN,
+        dropout=DROPOUT,
+        num_heads=NUM_HEADS,
+        num_layers=NUM_LAYERS,
+        embed_dim=EMBED_DIM
+        ).to(DEVICE)
 
     # Loss Function
     criterion = nn.CrossEntropyLoss()
 
     # Optimizer
-    optimizer = optim.Adam(model.parameters(), lr=LR)
+    optimizer = optim.Adam(model.parameters(), lr=LR, weight_decay=WD)
 
     # Lists to record losses
     train_losses = []
