@@ -85,6 +85,7 @@ ehthumbs.db
 # Ignore folders #
 ##################
 __pycache__/
+slurm/
 
 # Ignore everything in the data directory
 data/*

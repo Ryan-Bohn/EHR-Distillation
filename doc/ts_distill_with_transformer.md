@@ -6,8 +6,7 @@ Run these preprocessing scripts first:
 
 ```shell
 cd src
-python preprocess.py -n mimic3benchmark -d ../data/mimic3/benchmark/multitask/train/
-python preprocess.py -n mimic3benchmark -d ../data/mimic3/benchmark/multitask/test/
+python preprocess.py -n mimic3benchmark -d ../data/mimic3/benchmark/multitask/
 ```
 
 Some output statistics:
@@ -17,13 +16,56 @@ Some output statistics:
 | train | 35621                    | 35571      | 2804          | 87.27         | 124.23        |
 | test  | 6281                     | 6273       | 1993          | 88.85         | 127.70        |
 
+## Length of stay regression preliminary
 
+Do a time-step-wise regression on remaining length of stay.
 
+Data collate manner:
 
+- A batch consists of N sample features, key_padding_masks, masks and labels
+- Key_padding_masks: for each sample, positions (time steps) marked as a padding (True in boolTensor) will not attend attention
+- Masks: for each sample, only positions marked as 1 will contribute to the learning / eval loss (in other words, a valid data point). This mainly comes from mimic3 benchmark preprocessings
 
+Learner model arch:
 
+Transformer (encoder-only):
 
+- Max_seq_len = 320 (~mu+2sigma)
+- Mimic3 benchmark has 17 features, so input dim = 17
+- Each feature token will then be embedded into embed_dim = 64
+- 3 layers, with 4 heads, possibly dropout = 0.1
+- A **regressor to map latent vector into a number**
+- Every attention layer is futher masked by a triu causal matrix that prevent previous time steps from attending later positions, so that **the model learns a latent representation at each time step that encodes all previous information**
 
+Training criterion: MSE loss; Eval metric: MSE loss averaged over each time step
+
+![Figure_1](assets/Figure_1.png)
+
+### In hospital mortality classification preliminary
+
+All same as previous, except in transformer, instead of a regressor there's a forward layer mapping into 2-dim logit vector for binary classification.
+
+Training criterion: CE loss; Eval metric: CE loss and AUROC score
+
+Observed overfitting. Best eval AUROC ~0.82.
+
+Efforts trying to make the performance align with reported in benchmark paper (unitask ~0.86, multitask ~0.87)
+
+**Firstly, make sure the test set is normalized using the same stats as in training set.**
+
+Hyperparameters search:
+
+| slurm id | num_layers | num_heads | embed_dim | dropout | lr   | wd   | best epoch | best test auroc |
+| -------- | ---------- | --------- | --------- | ------- | ---- | ---- | ---------- | --------------- |
+| 19134073 | 3          | 4         | 32        | 0.1     | 1e-3 | 1e-3 | 60         | 0.8555          |
+| 19134218 | 3          | 4         | 64        | 0.1     | 1e-3 | 5e-4 | 60         | 0.8578          |
+| 19134259 | 3          | 4         | 32        | 0.1     | 1e-3 | 5e-4 | 77         | **0.8605**      |
+| 19134296 | 2          | 2         | 32        | 0.1     | 1e-3 | 5e-4 | 80         | 0.8596          |
+| 19134511 | 4          | 4         | 32        | 0.1     | 1e-3 | 5e-4 |            |                 |
+| 19134537 | 3          | 4         | 32        | 0.1     | 1e-3 | 1e-4 |            |                 |
+|          |            |           |           |         |      |      |            |                 |
+
+Timestamp encoding
 
 
 
