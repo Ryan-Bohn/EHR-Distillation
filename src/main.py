@@ -49,8 +49,8 @@ print(f"Using device: {DEVICE}")
 MAX_SEQ_LEN = 320
 EPOCHS = 100
 LR = 1e-3
-WD = 1e-4
-DROPOUT = 0.2
+WD = 5e-4
+DROPOUT = 0.3
 BATCH_SIZE = 256
 EMBED_DIM = 32
 NUM_HEADS = 4
@@ -453,6 +453,10 @@ def fit_ihm():
     best_eval_epoch += 1
     print(f'Best training score: {best_train_score} (epoch {best_train_epoch})')
     print(f'Best evaluation score: {best_eval_score} (epoch {best_eval_epoch})')
+
+
+def distill_multitask():
+    pass # TODO
 
 if __name__ == "__main__":
     fit_ihm()
