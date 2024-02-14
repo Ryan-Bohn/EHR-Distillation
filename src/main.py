@@ -46,45 +46,42 @@ from model import (
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using device: {DEVICE}")
 
-MAX_SEQ_LEN = 320
-EPOCHS = 100
-LR = 1e-3
-WD = 5e-4
-DROPOUT = 0.3
-BATCH_SIZE = 256
-EMBED_DIM = 32
-NUM_HEADS = 4
-NUM_LAYERS = 3
-
-
 timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
 OUT_DIR = os.path.join("../saved_data/", timestamp)
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="main.py")
-    
+
+    # shared arguments across all subtasks
     parser.add_argument("--no_save", action="store_true", help="no checkpoint saves")
-    parser.add_argument("--exp_type", type=str, required=True, help='experiment type in ["fit", "distill"]')
+    parser.add_argument("--verbose", action="store_true", help="to verbose")
 
-    # argument group for fit exp
-    fit_group = parser.add_argument_group('fit experiment arguments', 'these arguments are only available when experiment type is fit')
-    fit_group.add_argument('--tasks', nargs='+', help='one or more tasks in ["ihm", "los", "pheno", "decomp"]')
+    subparsers = parser.add_subparsers(dest="exp", required=True, help='specify experiment type, in ["fit", "distill"]')
+    # experiment type identifier is gonna be the 1st positional argument
+    # later, access task name with args.exp
+    
+    parser_fit = subparsers.add_parser(name='fit', help='fit model to dataset')
+    parser_distill = subparsers.add_parser(name='distill', help='distill synthetic data')
+
+    # arguments for fit task
+    parser_fit.add_argument('--tasks', nargs='+', required=True, help='one or more tasks in ["ihm", "los", "pheno", "decomp"]')
 
 
+    # parse the args
     args = parser.parse_args()
 
     if not args.no_save:
         os.makedirs(OUT_DIR, exist_ok=True)
 
-    if args.exp_type == "fit": # process fit-only arguments
-        if not args.tasks:
-            raise ValueError("select the tasks to fit a multitask model")
+    if args.exp == "fit": # process fit arguments
+
         for task in args.tasks: # check every task name is legal
             if task not in ["ihm", "los", "pheno", "decomp"]:
                 raise NotImplementedError()
         args.tasks = set(args.tasks) # convert task list to set
-    elif args.exp_type == "distill": # process distill-only arguments
+
+    elif args.exp == "distill": # process distill-only arguments
         pass
     else:
         raise NotImplementedError()
@@ -92,102 +89,7 @@ def parse_args():
     return args
 
 
-def main():
-    args = parse_args()
-
-    if args.exp_type != "fit":
-        raise NotImplementedError()
-    
-    # load datasets
-    train_set = Mimic3BenchmarkMultitaskDataset("../data/mimic3/benchmark/multitask/train/saves/*.pkl") # if passing a glob, it'll load the latest save satisfying the glob
-    test_set = Mimic3BenchmarkMultitaskDataset("../data/mimic3/benchmark/multitask/test/saves/*.pkl")
-    print(f"Datasets loaded. Train set size: {len(train_set)}; Test set size: {len(test_set)}")
-
-    # use first sample in train set as example
-    example_tensor = train_set[0]["feature"]
-    num_features = example_tensor.shape[1]
-
-    # create dataloaders
-    collator = Mimic3BenchmarkMultitaskDatasetCollator(max_seq_len=MAX_SEQ_LEN, tasks=args.tasks)
-    train_loader = DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True, collate_fn=collator.collate_fn)
-    test_loader = DataLoader(test_set, batch_size=BATCH_SIZE, shuffle=True, collate_fn=collator.collate_fn)
-    
-    # TODO
-
-    # loss functions
-    criterion = nn.MSELoss()
-
-    # Optimizer
-    optimizer = optim.Adam(model.parameters(), lr=LR)
-
-    # Lists to record losses
-    train_losses = []
-    eval_losses = []
-
-    # Training and Evaluation Loop
-    for epoch in range(EPOCHS):
-        print(f"Epoch {epoch+1} training...")
-        model.train()
-        total_train_loss = 0
-        total_train_samples = 0
-        for batch_features, batch_key_padding_masks, batch_masks, batch_labels in train_loader:
-            # batch_key_padding_masks: bool tensor, true if the position is a padding
-            # batch_masks: 1 only when this position is considered in computing the loss
-
-            # Move tensors to the specified DEVICE
-            batch_features, batch_key_padding_masks, batch_masks, batch_labels = batch_features.to(DEVICE), batch_key_padding_masks.to(DEVICE), batch_masks.to(DEVICE), batch_labels.to(DEVICE)
-            
-            # Forward pass
-            outputs = model(batch_features, batch_key_padding_masks)
-            masks = batch_masks == 1
-            loss = criterion(outputs[masks].squeeze(), batch_labels[masks].squeeze())
-
-            # Backward and optimize
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-            total_train_loss += loss.item()
-            total_train_samples += torch.sum(masks).item()
-
-        average_train_loss = total_train_loss / total_train_samples
-        train_losses.append(average_train_loss)
-
-        # Evaluation
-        print(f"Epoch {epoch+1} evaluating...")
-        model.eval()
-        total_eval_loss = 0
-        total_eval_samples = 0
-        with torch.no_grad():
-            for batch_features, batch_key_padding_masks, batch_masks, batch_labels in test_loader:
-                # Move tensors to the specified DEVICE
-                batch_features, batch_key_padding_masks, batch_masks, batch_labels = batch_features.to(DEVICE), batch_key_padding_masks.to(DEVICE), batch_masks.to(DEVICE), batch_labels.to(DEVICE)
-                
-                # Forward pass
-                outputs = model(batch_features, batch_key_padding_masks)
-                masks = batch_masks == 1
-                loss = criterion(outputs[masks].squeeze(), batch_labels[masks].squeeze())
-                total_eval_loss += loss.item()
-                total_eval_samples += torch.sum(masks).item()
-
-        average_eval_loss = total_eval_loss / total_eval_samples
-        eval_losses.append(average_eval_loss)
-
-        print(f"Epoch [{epoch+1}/{EPOCHS}], Train Loss: {average_train_loss:.4f} ({total_train_samples} samples), Eval Loss: {average_eval_loss:.4f} ({total_eval_samples} samples)")
-
-        if not args.no_save:
-            # Save losses
-            with open(os.path.join(OUT_DIR, 'losses.pkl'), 'wb') as f:
-                pickle.dump({'train_losses': train_losses, 'eval_losses': eval_losses}, f)
-
-            # Save the model
-            model_path = os.path.join(OUT_DIR, 'transformer_encoder_regression_model.pth')
-            torch.save(model.state_dict(), model_path)
-
-    print(f'Training done, all data saved to "{OUT_DIR}".')
-
-
-def main_legacy():
+def main_legacy(): # used to fit los task in a regression manner
     args = parse_args()
 
     train_set = Mimic3BenchmarkMultitaskDataset("../data/mimic3/benchmark/multitask/train/saves/*.pkl") # if passing a glob, it'll load the latest save satisfying the glob
@@ -279,11 +181,16 @@ def main_legacy():
     print(f'Training done, all data saved to "{OUT_DIR}".')
     
 
-def fit_ihm():
-    args = parse_args()
-
-    if args.exp_type != "fit":
-        raise NotImplementedError()
+def fit_ihm(args):
+    MAX_SEQ_LEN = 320
+    EPOCHS = 100
+    LR = 1e-3
+    WD = 5e-4
+    DROPOUT = 0.3
+    BATCH_SIZE = 256
+    EMBED_DIM = 32
+    NUM_HEADS = 4
+    NUM_LAYERS = 3
 
     print("Starting experiment...")
     # print hyper params
@@ -455,8 +362,17 @@ def fit_ihm():
     print(f'Best evaluation score: {best_eval_score} (epoch {best_eval_epoch})')
 
 
-def distill_multitask():
+def distill(args):
     pass # TODO
 
+
+def main():
+    args = parse_args()
+    if args.exp == 'fit':
+        fit_ihm(args) # currently only ihm single task fitting
+    elif args.exp == 'distill':
+        distill(args)
+
+
 if __name__ == "__main__":
-    fit_ihm()
+    main()
