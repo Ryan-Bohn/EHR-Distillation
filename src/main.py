@@ -50,11 +50,7 @@ MAX_SEQ_LEN = 320
 EPOCHS = 100
 LR = 1e-3
 WD = 5e-4
-<<<<<<< HEAD
 DROPOUT = 0.3
-=======
-DROPOUT = 0.1
->>>>>>> 0773d5f (update doc)
 BATCH_SIZE = 256
 EMBED_DIM = 32
 NUM_HEADS = 4
