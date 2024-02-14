@@ -36,6 +36,6 @@ import argparse
 
 from configs import DataConfig
 
-class DataModule:
-    def __init__():
-        pass
+class SyntheticMimic3BenchmarkMultitaskSample:
+    def __init__(self, n_samples: int):
+        self.feature = 

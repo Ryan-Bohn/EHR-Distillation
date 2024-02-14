@@ -15,6 +15,8 @@ import pandas as pd
 import heapq
 import re
 import math
+from dataclasses import dataclass, asdict
+import json
 
 import torch
 from torch import nn
@@ -67,6 +69,9 @@ def parse_args():
     # arguments for fit task
     parser_fit.add_argument('--tasks', nargs='+', required=True, help='one or more tasks in ["ihm", "los", "pheno", "decomp"]')
 
+    # arguments for distill task
+    parser_distill.add_argument('--tasks', nargs='+', required=True, help='one or more tasks in ["ihm", "los", "pheno", "decomp"]')
+    parser_distill.add_argument('--method', type=str, required=True, help='distill method in ["vanilla", "gmatch"]')
 
     # parse the args
     args = parser.parse_args()
@@ -82,7 +87,15 @@ def parse_args():
         args.tasks = set(args.tasks) # convert task list to set
 
     elif args.exp == "distill": # process distill-only arguments
-        pass
+
+        for task in args.tasks: # check every task name is legal
+            if task not in ["ihm", "los", "pheno", "decomp"]:
+                raise NotImplementedError()
+        args.tasks = set(args.tasks) # convert task list to set
+
+        if args.method not in ["vanilla", "gmatch"]: # make sure distill method is leagal
+            raise NotImplementedError()
+        
     else:
         raise NotImplementedError()
     
@@ -363,7 +376,191 @@ def fit_ihm(args):
 
 
 def distill(args):
-    pass # TODO
+
+    print('Starting distilling experiment...')
+    print(f'Selected method: {args.method}')
+    print(f'Selected subtasks: {args.tasks}')
+
+    if args.method == "vanilla":
+        
+        MAX_SEQ_LEN = 320
+        EPOCHS = 100
+        LR = 1e-3
+        WD = 5e-4
+        DROPOUT = 0.3
+        BATCH_SIZE = 256
+        EMBED_DIM = 32
+        NUM_HEADS = 4
+        NUM_LAYERS = 3
+
+
+        @dataclass
+        class VanillaDistillConfig:
+            n_samples: int = 100 # number of synthetic samples
+            batch_size_real: int = 256 # minibatch size of real datasets
+
+        config = VanillaDistillConfig()
+        print(f'Configs: {json.dumps(asdict(config))}')
+
+        # load real datasets
+        train_set = Mimic3BenchmarkMultitaskDataset("../data/mimic3/benchmark/multitask/train/saves/*.pkl") # if passing a glob, it'll load the latest save satisfying the glob
+        test_set = Mimic3BenchmarkMultitaskDataset("../data/mimic3/benchmark/multitask/test/saves/*.pkl")
+        print(f"Datasets loaded. Train set size: {len(train_set)}; Test set size: {len(test_set)}")
+
+        # use first sample in train set as example
+        example_tensor = train_set[0]["feature"]
+        num_features = example_tensor.shape[1]
+
+        # create dataloaders
+        collator = Mimic3BenchmarkMultitaskDatasetCollator(max_seq_len=MAX_SEQ_LEN, tasks=args.tasks) # pass in the tasks set
+        train_loader = DataLoader(train_set, batch_size=config.batch_size_real, shuffle=True, collate_fn=collator.collate_fn)
+        test_loader = DataLoader(test_set, batch_size=config.batch_size_real, shuffle=True, collate_fn=collator.collate_fn)
+        
+        # get learner model
+        model = TransformerEncoderForTimeStepWiseClassification(
+            num_features=num_features,
+            num_classes=2,
+            max_seq_len=MAX_SEQ_LEN,
+            dropout=DROPOUT,
+            num_heads=NUM_HEADS,
+            num_layers=NUM_LAYERS,
+            embed_dim=EMBED_DIM
+            ).to(DEVICE)
+
+        # Loss Function
+        criterion = nn.CrossEntropyLoss()
+
+        # Optimizer
+        optimizer = optim.Adam(model.parameters(), lr=LR, weight_decay=WD)
+
+        # Lists to record losses
+        train_losses = []
+        train_auroc_scores = []
+        eval_losses = []
+        eval_auroc_scores = []
+
+        # Training and Evaluation Loop
+        for epoch in range(EPOCHS):
+            print(f"Epoch {epoch+1} training...")
+            model.train()
+            total_train_loss = 0
+            total_train_samples = 0
+            train_preds = []
+            train_true_labels = []
+            for data in train_loader:
+                # batch_key_padding_masks: bool tensor, true if the position is a padding
+                # batch_masks: 1 only when this position is considered in computing the loss
+
+                # Move tensors to the specified DEVICE
+                features, padding_masks, ihm_pos, ihm_mask, ihm_label = (
+                    data["features"].to(DEVICE),
+                    data["padding_masks"].to(DEVICE),
+                    data["ihm_pos"].to(DEVICE),
+                    data["ihm_mask"].to(DEVICE),
+                    data["ihm_label"].to(DEVICE),
+                    )
+                
+                b_size = features.size(0)
+                # Forward pass
+                outputs = model(features, padding_masks)
+                valid_idx = ihm_mask == 1 # valid data point masks, True if data point at corresponding position is applicable to current task
+                valid_outputs = outputs[torch.arange(b_size),ihm_pos][valid_idx]
+                valid_labels = ihm_label[valid_idx]
+                loss = criterion(valid_outputs, valid_labels)
+
+                # Backward and optimize
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+
+                total_train_loss += loss.item()
+                total_train_samples += torch.sum(valid_idx).item()
+
+                # log data for computing auroc score
+                probs = torch.softmax(valid_outputs.detach(), dim=1) # Apply softmax to logits
+                pos_cls_probs = probs[:, 1]
+                # Store predictions and labels
+                train_preds.extend(pos_cls_probs.cpu().numpy())
+                train_true_labels.extend(valid_labels.cpu().numpy())
+
+            average_train_loss = total_train_loss / total_train_samples
+            train_losses.append(average_train_loss)
+            train_auroc_score = roc_auc_score(train_true_labels, train_preds)
+            train_auroc_scores.append(train_auroc_score)
+
+            # Evaluation
+            print(f"Epoch {epoch+1} evaluating...")
+            model.eval()
+            total_eval_loss = 0
+            total_eval_samples = 0
+            eval_preds = []
+            eval_true_labels = []
+            with torch.no_grad():
+                for data in test_loader:
+                    # Move tensors to the specified DEVICE
+                    features, padding_masks, ihm_pos, ihm_mask, ihm_label = (
+                    data["features"].to(DEVICE),
+                    data["padding_masks"].to(DEVICE),
+                    data["ihm_pos"].to(DEVICE),
+                    data["ihm_mask"].to(DEVICE),
+                    data["ihm_label"].to(DEVICE),
+                    )
+
+                    b_size = features.size(0)
+                    # Forward pass
+                    outputs = model(features, padding_masks)
+                    valid_idx = ihm_mask == 1 # valid data point masks, True if data point at corresponding position is applicable to current task
+                    valid_outputs = outputs[torch.arange(b_size),ihm_pos][valid_idx]
+                    valid_labels = ihm_label[valid_idx]
+
+                    loss = criterion(valid_outputs, valid_labels)
+                    total_eval_loss += loss.item()
+                    total_eval_samples += torch.sum(valid_idx).item()
+
+                    # log data for computing auroc score
+                    probs = torch.softmax(valid_outputs.detach(), dim=1) # Apply softmax to logits
+                    pos_cls_probs = probs[:, 1]
+                    # Store predictions and labels
+                    eval_preds.extend(pos_cls_probs.cpu().numpy())
+                    eval_true_labels.extend(valid_labels.cpu().numpy())
+
+            average_eval_loss = total_eval_loss / total_eval_samples
+            eval_losses.append(average_eval_loss)
+            eval_auroc_score = roc_auc_score(eval_true_labels, eval_preds)
+            eval_auroc_scores.append(eval_auroc_score)
+
+            print(f"---------Epoch [{epoch+1}/{EPOCHS}]----------")
+            print(f"Train samples: {total_train_samples}")
+            print(f"Train loss: {average_train_loss:.4f}")
+            print(f"Train AUROC score: {train_auroc_score:.4f}")
+            print(f"Eval samples: {total_eval_samples}")
+            print(f"Eval loss: {average_eval_loss:.4f}")
+            print(f"Eval AUROC score: {eval_auroc_score:.4f}")
+
+            if not args.no_save:
+                # Save losses
+                with open(os.path.join(OUT_DIR, 'losses.pkl'), 'wb') as f:
+                    pickle.dump({
+                        'train_losses': train_losses,
+                        'eval_losses': eval_losses,
+                        'train_auroc_scores': train_auroc_scores,
+                        'eval_auroc_scores': eval_auroc_scores,
+                        }, f)
+
+                # Save the model
+                model_path = os.path.join(OUT_DIR, 'transformer_encoder_regression_model.pth')
+                torch.save(model.state_dict(), model_path)
+        
+        print(f'Training done, all data saved to "{OUT_DIR}".')
+        best_train_epoch, best_train_score = max(enumerate(train_auroc_scores), key=lambda x: x[1])
+        best_train_epoch += 1
+        best_eval_epoch, best_eval_score = max(enumerate(eval_auroc_scores), key=lambda x: x[1])
+        best_eval_epoch += 1
+        print(f'Best training score: {best_train_score} (epoch {best_train_epoch})')
+        print(f'Best evaluation score: {best_eval_score} (epoch {best_eval_epoch})')
+
+    else:
+        raise NotImplementedError() # TODO
 
 
 def main():
