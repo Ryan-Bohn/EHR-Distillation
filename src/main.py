@@ -409,7 +409,7 @@ def distill(args):
         print(f'Configs: {json.dumps(asdict(config))}')
 
         # load real datasets
-        train_set = Mimic3BenchmarkMultitaskDataset("../data/mimic3/benchmark/multitask/test/saves/*.pkl") # if passing a glob, it'll load the latest save satisfying the glob
+        train_set = Mimic3BenchmarkMultitaskDataset("../data/mimic3/benchmark/multitask/train/saves/*.pkl") # if passing a glob, it'll load the latest save satisfying the glob
         test_set = Mimic3BenchmarkMultitaskDataset("../data/mimic3/benchmark/multitask/test/saves/*.pkl")
         print(f"Datasets loaded. Train set size: {len(train_set)}; Test set size: {len(test_set)}")
 
