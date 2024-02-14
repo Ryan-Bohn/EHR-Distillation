@@ -182,3 +182,88 @@ class TransformerEncoderForTimeStepWiseClassification(nn.Module):
         # Use the output of each time step for classification
         output = self.classifier(encoded)  # Shape: [batch_size, seq_len, num_classes]
         return output
+    
+
+class TransformerEncoderPlusMimic3BenchmarkMultitaskHeads(nn.Module):
+    def __init__(self, num_features, max_seq_len=320, embed_dim=32, num_heads=4, num_layers=3, dropout=0.3):
+        super().__init__()
+        self.max_seq_len = max_seq_len
+
+        # Feature embedding layer
+        self.feature_embedding = nn.Linear(num_features, embed_dim)
+
+        # Transformer encoder layers
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=embed_dim,
+            nhead=num_heads,
+            dropout=dropout,
+            batch_first=True
+        )
+        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+
+        # Classifier for IHM task (2-class classification)
+        self.ihm_classifier = nn.Linear(embed_dim, 2)
+
+        # Classifier for LOS task (regression)
+        self.los_regressor = nn.Linear(embed_dim, 1)
+
+        # Classifier for Pheno task (25 binary classifications)
+        self.pheno_classifier = nn.Linear(embed_dim, 50)  # 25 tasks * 2 classes each
+
+        # Classifier for Decomp task (binary classification)
+        self.decomp_classifier = nn.Linear(embed_dim, 2)
+
+        # Sinusoidal positional encoding
+        position = torch.arange(max_seq_len).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, embed_dim, 2).float() * (-math.log(10000.0) / embed_dim))
+        pe = torch.zeros(max_seq_len, embed_dim)
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0)  # shape: [1, max_seq_len, embed_dim]
+        self.register_buffer('pe', pe)
+
+    @staticmethod
+    def create_causal_mask(size):
+        mask = torch.triu(torch.ones(size, size), diagonal=1).bool()
+        return mask
+
+    def forward(self, x, padding_mask):
+        # x: [batch_size, seq_len, num_features]
+        seq_len = x.size(1)
+
+        # Feature embedding
+        x = self.feature_embedding(x)
+
+        # Add positional embeddings to feature embeddings
+        pos_encoding = self.pe[:, :seq_len, :].expand(x.size(0), -1, -1)
+        x = x + pos_encoding
+
+        # Create causal mask
+        causal_mask = self.create_causal_mask(seq_len).to(x.device)
+
+        # Passing the input through the transformer encoder with masks
+        encoded = self.transformer_encoder(x, mask=causal_mask, src_key_padding_mask=padding_mask)
+
+        # Task-specific heads
+
+        # IHM Classifier
+        ihm_output = self.ihm_classifier(encoded)
+
+        # LOS Regressor
+        los_output = self.los_regressor(encoded)
+
+        # Pheno Classifier
+        pheno_output = self.pheno_classifier(encoded)
+        # Reshape the pheno_output to [batch_size, seq_len, 25, 2]
+        pheno_output = pheno_output.view(pheno_output.size(0), pheno_output.size(1), 25, 2)
+
+        # Decomp Classifier
+        decomp_output = self.decomp_classifier(encoded)
+
+        # Return outputs for each task
+        return {
+            "ihm": ihm_output,
+            "los": los_output,
+            "pheno": pheno_output,
+            "decomp": decomp_output
+        }

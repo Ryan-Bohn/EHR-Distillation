@@ -131,7 +131,7 @@ class Mimic3BenchmarkDatasetPreprocessor:
         
     def __init__(self, sr=1., tensor=True, one_hot=False, strict=False):
         self.sr = sr
-        self.tensor = tensor # whether or not save processed features as torch tensor
+        self.tensor = tensor # whether or not save processed features and labels as torch tensor
         self.one_hot = one_hot # whether or not expand categorical feature columns (integer labels) into one-hot representations
         self.strict = strict # if set to False, samples with exception will be ignored and not saved to output; if True, exception will be raised
         
@@ -178,25 +178,46 @@ class Mimic3BenchmarkDatasetPreprocessor:
                 pheno_labels = [int(x) for x in pheno_labels_raw.split(';')]
                 decomp_labels_split = decomp_labels_raw.split(';')
                 decomp_masks, decomp_labels = [int(x) for x in decomp_labels_split[:len(decomp_labels_split)//2]], [float(x) for x in decomp_labels_split[len(decomp_labels_split)//2:]]
-                label_dict = {
-                    "ihm": {
-                        "pos": ihm_pos,
-                        "mask": ihm_mask,
-                        "label": ihm_label,
-                    },
-                    "los": {
-                        "time": los,
-                        "masks": los_masks,
-                        "labels": los_labels,
-                    },
-                    "pheno": {
-                        "labels": pheno_labels,
-                    },
-                    "decomp": {
-                        "masks": decomp_masks,
-                        "labels": decomp_labels,
-                    },
-                }
+                if self.tensor:
+                    label_dict = {
+                        "ihm": {
+                            "pos": torch.tensor(ihm_pos, dtype=torch.long),
+                            "mask": torch.tensor(ihm_mask, dtype=torch.long),
+                            "label": torch.tensor(ihm_label, dtype=torch.long),
+                        },
+                        "los": {
+                            "time": torch.tensor(los, dtype=torch.float), # pay attention to type!
+                            "masks": torch.tensor(los_masks, dtype=torch.long),
+                            "labels": torch.tensor(los_labels, dtype=torch.float),  # pay attention to type!
+                        },
+                        "pheno": {
+                            "labels": torch.tensor(pheno_labels, dtype=torch.long),
+                        },
+                        "decomp": {
+                            "masks": torch.tensor(decomp_masks, dtype=torch.long),
+                            "labels": torch.tensor(decomp_labels, dtype=torch.long),
+                        },
+                    }
+                else:
+                    label_dict = {
+                        "ihm": {
+                            "pos": ihm_pos,
+                            "mask": ihm_mask,
+                            "label": ihm_label,
+                        },
+                        "los": {
+                            "time": los,
+                            "masks": los_masks,
+                            "labels": los_labels,
+                        },
+                        "pheno": {
+                            "labels": pheno_labels,
+                        },
+                        "decomp": {
+                            "masks": decomp_masks,
+                            "labels": decomp_labels,
+                        },
+                    }
         
                 # prepare features for processing
                 # rename feature columns
@@ -264,7 +285,7 @@ class Mimic3BenchmarkDatasetPreprocessor:
             df.ffill(inplace=True) # foward fill
             for name in self.feature_dict.keys(): # replace remaining nans (at the beginning) with reported avgs in paper
                 df[name].fillna(stats["orig_feature_avg"][name], inplace=True)
-            if len(df) != len(labels[i]["los"]["labels"]):
+            if len(df) != len(labels[i]["los"]["labels"]): # test that the seq length is equal to los labels length
                 print(f'Time series "{keys[i]}" has a mismatched length with its associated los prediction task labels. Ignored.')
                 print(len(df), len(labels[i]["los"]["labels"]), len(labels[i]["decomp"]["labels"]))
                 valid_flags[i] = False
@@ -348,7 +369,7 @@ def main():
     args = parse_args()
 
     if args.name == "mimic3benchmark":
-        preprocessor = Mimic3BenchmarkDatasetPreprocessor(sr=args.sr, one_hot=args.one_hot)
+        preprocessor = Mimic3BenchmarkDatasetPreprocessor(sr=args.sr, tensor=True, one_hot=args.one_hot)
         train_stats = preprocessor.preprocess(os.path.join(args.dir, "train/"))
         preprocessor.preprocess(os.path.join(args.dir, "test/"), stats=train_stats)
 

@@ -135,7 +135,7 @@ class Mimic3BenchmarkMultitaskDatasetLOSTaskCollator:
 
         return batch_features, batch_key_padding_masks, batch_masks, batch_labels
     
-class Mimic3BenchmarkMultitaskDatasetCollator:
+class Mimic3BenchmarkMultitaskDatasetCollatorLegacy: # this collator assume raw batch has not everything in tensor
     def __init__(self, max_seq_len, tasks: set):
         
         self.max_seq_len = max_seq_len
@@ -234,3 +234,167 @@ class Mimic3BenchmarkMultitaskDatasetCollator:
             batch["decomp_masks"] = batch_decomp_masks
 
         return batch
+    
+class Mimic3BenchmarkMultitaskDatasetCollator:
+    def __init__(self, max_seq_len, tasks: set):
+        
+        self.max_seq_len = max_seq_len
+        self.tasks = tasks
+
+    def collate_fn(self, raw_batch):
+        """
+        Returns a dictionary.
+        """
+
+        batch = {}
+        
+        # pack features and padding masks
+        batch_features = []
+        batch_padding_masks = []
+        for data_dict in raw_batch:
+            feature = data_dict["feature"]
+            # pad feature to max_length
+            padded_features = torch.nn.functional.pad(feature, (0, 0, 0, self.max_seq_len - feature.size(0)))
+            batch_features.append(padded_features)
+            # create a mask for valid (non-padding) data points
+            padding_masks = ~(torch.arange(self.max_seq_len) < feature.size(0)) # True means this data point is a padding
+            batch_padding_masks.append(padding_masks)
+        if len(batch_features) == 0:
+            return None
+        batch_features = torch.stack(batch_features)
+        batch_padding_masks = torch.stack(batch_padding_masks)
+        batch["features"] = batch_features
+        batch["padding_masks"] = batch_padding_masks
+        
+        # pack ihm related labels
+        if "ihm" in self.tasks:
+            batch_ihm_pos = []
+            batch_ihm_mask = []
+            batch_ihm_label = []
+            for data_dict in raw_batch:
+                label = data_dict["label"]
+                ihm_pos = label["ihm"]["pos"]
+                ihm_mask = label["ihm"]["mask"]
+                ihm_label = label["ihm"]["label"]
+                batch_ihm_pos.append(ihm_pos)
+                batch_ihm_mask.append(ihm_mask)
+                batch_ihm_label.append(ihm_label)
+            batch_ihm_pos = torch.stack(batch_ihm_pos)
+            batch_ihm_mask = torch.stack(batch_ihm_mask)
+            batch_ihm_label = torch.stack(batch_ihm_label)
+            batch["ihm_pos"] = batch_ihm_pos
+            batch["ihm_mask"] = batch_ihm_mask
+            batch["ihm_label"] = batch_ihm_label
+        
+        # pack los related labels:
+        if "los" in self.tasks:
+            batch_los_labels = []
+            batch_los_masks = []
+            for data_dict in raw_batch:
+                label = data_dict["label"]
+                los_masks = label["los"]["masks"]
+                los_labels = label["los"]["labels"]
+                # los labels and masks are of same length as feature seq, also pad them
+                padded_los_labels = torch.nn.functional.pad(los_labels, (0, self.max_seq_len - los_labels.size(0)), value=-1)  # use a dummy value for padding
+                padded_los_masks = torch.nn.functional.pad(los_masks, (0, self.max_seq_len - los_masks.size(0)), value=0)
+                batch_los_labels.append(padded_los_labels)
+                batch_los_masks.append(padded_los_masks)
+            batch_los_labels = torch.stack(batch_los_labels)
+            batch_los_masks = torch.stack(batch_los_masks)
+            batch["los_labels"] = batch_los_labels
+            batch["los_masks"] = batch_los_masks
+            
+        
+        # pack pheno related labels:
+        if "pheno" in self.tasks:
+            batch_pheno_labels = []
+            for data_dict in raw_batch:
+                label = data_dict["label"]
+                pheno_labels = label["pheno"]["labels"]
+                batch_pheno_labels.append(pheno_labels)
+            batch_pheno_labels = torch.stack(batch_pheno_labels)
+            batch["pheno_labels"] = batch_pheno_labels
+        
+        # pack decomp related labels:
+        if "decomp" in self.tasks:
+            batch_decomp_labels = []
+            batch_decomp_masks = []
+            for data_dict in raw_batch:
+                label = data_dict["label"]
+                decomp_masks = label["decomp"]["masks"]
+                decomp_labels = label["decomp"]["labels"]
+                # decomp labels and masks are of same length as feature seq, also pad them
+                padded_decomp_labels = torch.nn.functional.pad(decomp_labels, (0, self.max_seq_len - decomp_labels.size(0)), value=-1)  # use a dummy value for padding
+                padded_decomp_masks = torch.nn.functional.pad(decomp_masks, (0, self.max_seq_len - decomp_masks.size(0)), value=0)
+                batch_decomp_labels.append(padded_decomp_labels)
+                batch_decomp_masks.append(padded_decomp_masks)
+            batch_decomp_labels = torch.stack(batch_decomp_labels)
+            batch_decomp_masks = torch.stack(batch_decomp_masks)
+            batch["decomp_labels"] = batch_decomp_labels
+            batch["decomp_masks"] = batch_decomp_masks
+
+        return batch
+    
+
+class SyntheticMimic3BenchmarkMultitaskDataset(Dataset):
+    """
+    Synthetic dataset for multitask mimic3 benchmark.
+    """
+    def __init__(self, n_samples: int, seq_len: int, n_features: int, tasks: set, batch_size: int):
+        
+        self.n_samples = n_samples
+        self.tasks = tasks
+        self.seq_len = seq_len
+        self.n_features = n_features
+        self.batch_size = batch_size
+
+        # all learnable things as separate lists
+        self.feature_list = [torch.randn((seq_len, n_features), requires_grad=True) for _ in range(n_samples)]
+        self.ihm_label_list = [torch.randn(2, dtype=torch.float, requires_grad=True) for _ in range(n_samples)] # soft labels' logits, return to learner after softmax
+        self.los_time_list = [torch.randn(1, dtype=torch.float, requires_grad=True) for _ in range(n_samples)]
+        self.pheno_labels_list = [torch.randn((25, 2), dtype=torch.float, requires_grad=True) for _ in range(n_samples)] # soft labels' logits, return to learner after softmax
+        self.decomp_labels_list = [torch.randn((seq_len, 2), dtype=torch.float, requires_grad=True) for _ in range(n_samples)] # soft labels' logits, return to learner after softmax
+
+        # some tensors that are not learnable, thus can be shared
+        self.ihm_pos = torch.tensor(47, dtype=torch.long)
+        self.ihm_mask = torch.tensor(1 if self.seq_len > 47 else 0, dtype=torch.long)
+        self.first_5_masks = torch.ones(self.seq_len)
+        self.first_5_masks[:5] = 0
+
+    
+    
+    def __len__(self):
+        return self.n_samples
+    
+    def __getitem__(self, idx):
+        time_past = torch.arange(self.seq_len, dtype=torch.float) # 0 to seq_len-1 hours in a tensor
+
+        return {
+            "feature": self.feature_list[idx],
+            "label": {
+                "ihm": {
+                    "pos": self.ihm_pos,
+                    "mask": self.ihm_mask,
+                    "label": self.ihm_label_list[idx],
+                },
+                "los": {
+                    "masks": self.first_5_masks,
+                    "labels": self.los_time_list[idx] - time_past, # all positions are related to the one and only los time
+                },
+                "pheno": {
+                    "labels": self.pheno_labels_list[idx],
+                },
+                "decomp": {
+                    "masks": self.first_5_masks,
+                    "labels": self.decomp_labels_list[idx],
+                },
+            },
+        }
+    
+    def get_minibatch(self, batch_id):
+        batch = []
+        i_start = batch_id * self.batch_size % self.n_samples
+        for i in range(i_start, i_start+self.batch_size):
+            batch.append(self.__getitem__(i%self.n_samples))
+        return batch
+        
