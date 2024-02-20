@@ -50,6 +50,10 @@ from model import (
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using device: {DEVICE}")
 
+# https://github.com/pytorch/pytorch/issues/117974
+torch.backends.cuda.enable_flash_sdp(False)
+torch.backends.cuda.enable_mem_efficient_sdp(False)
+
 timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
 OUT_DIR = os.path.join("../saved_data/", timestamp)
 
@@ -386,8 +390,8 @@ def distill(args):
     if args.method == "vanilla":
         @dataclass
         class VanillaDistillConfig:
-            n_samples: int = 64 # number of synthetic samples
-            batch_size_syn: int = 64
+            n_samples: int = 1 # number of synthetic samples
+            batch_size_syn: int = 1
             batch_size_real: int = 256 # minibatch size of real datasets
             max_seq_len: int = 320
             num_heads: int = 4
@@ -493,7 +497,7 @@ def distill(args):
             pheno_valid_outputs = outputs["pheno"][:, -1, :, :] # use only the whole sequence for phenotyping
             if pheno_labels.size() == pheno_valid_outputs.size(): # is soft label, apply softmax before cross_entropy
                 pheno_labels = pheno_labels.softmax(dim=-1)
-            pheno_loss = torch.tensor(.0, dtype=torch.float)
+            pheno_loss = 0.0
             for i in range(pheno_valid_outputs.size(1)):  # iterate over the 25 classifiers
                 logits = pheno_valid_outputs[:, i, :]
                 labels = pheno_labels[:, i] # here shape is either (batch_size, 2) for soft labels or simply (batch_size) for indices
@@ -549,9 +553,10 @@ def distill(args):
 
             loss_real_e.append(sum(loss_real_o) / len(loss_real_o))
             print(f'! epoch {e} completed, avg real loss over this epoch: {loss_real_e[-1]:.4f}')
-            with open(os.path.join(OUT_DIR, f'e{e}.pkl'), 'wb') as f:
-                pickle.dump(syn_set, f)
-            print(f"! synthetic dataset at epoch {e} saved as {os.path.join(OUT_DIR, f'e{e}.pkl')}")
+            if not args.no_save:
+                with open(os.path.join(OUT_DIR, f'e{e}.pkl'), 'wb') as f:
+                    pickle.dump(syn_set, f)
+                print(f"! synthetic dataset at epoch {e} saved as {os.path.join(OUT_DIR, f'e{e}.pkl')}")
     else:
         raise NotImplementedError() # TODO
 
