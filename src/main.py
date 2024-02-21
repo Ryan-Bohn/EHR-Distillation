@@ -548,7 +548,7 @@ def distill(args):
                 optimizer_data.step()
                 # lr_model can't be negative
                 lr_model.data.clamp_(min=config.min_lr_model)
-                print(f'outer step {o+1}, avg real loss = {loss_real.item():.4f}, lr_model = {lr_model.item():.4f}')
+                print(f'outer step {o+1}, avg real loss = {loss_real.item():.4f}, lr_model = {lr_model.item():.8f}')
                 loss_real_o.append(loss_real.item())
 
             loss_real_e.append(sum(loss_real_o) / len(loss_real_o))
