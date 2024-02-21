@@ -51,9 +51,9 @@ Observed overfitting. Best eval AUROC ~0.82.
 
 Efforts trying to make the performance align with reported in benchmark paper (unitask ~0.86, multitask ~0.87)
 
-**Firstly, make sure the test set is normalized using the same stats as in training set.**
+Firstly, **make sure the test set is normalized using the same stats as in training set.**
 
-Hyperparameters search:
+Then, do a hyperparameters search:
 
 | slurm id     | num_layers | num_heads | embed_dim | dropout | lr   | wd   | best epoch | best test auroc |
 | ------------ | ---------- | --------- | --------- | ------- | ---- | ---- | ---------- | --------------- |
@@ -70,11 +70,28 @@ Hyperparameters search:
 | 19289511     | 3          | 4         | 32        | 0.2     | 1e-3 | 5e-4 | 89         | **0.8616**      |
 | 19313189     | 3          | 4         | 32        | 0.3     | 1e-3 | 5e-4 | 95         | 0.8580          |
 
+###Vanilla (multitask) dataset distillation:
+
+LOS task loss is extremely large and when its weight is not 0 nan will occur in both model parameters and learnable synthetic data. So temporarily except this task, considering only the rest 3.
+
+Evaluation (by train-on-synthetic, eval-on-real) at some distillation epochs:
+
+Train epoch 10:
+
+---------Results----------
+Eval samples: 3235
+Eval loss: 0.0027
+Eval AUROC score: **0.7516**
+
+
+
 
 
 Timestamp encoding: TODO
 
-Vanilla distillation: TODO
+
+
+
 
 
 

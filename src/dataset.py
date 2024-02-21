@@ -135,7 +135,7 @@ class Mimic3BenchmarkMultitaskDatasetLOSTaskCollator:
 
         return batch_features, batch_key_padding_masks, batch_masks, batch_labels
     
-class Mimic3BenchmarkMultitaskDatasetCollatorLegacy: # this collator assume raw batch has not everything in tensor
+class Mimic3BenchmarkMultitaskDatasetCollatorLegacy: # this collator assume raw batch has not everything in tensor, but only feature
     def __init__(self, max_seq_len, tasks: set):
         
         self.max_seq_len = max_seq_len
@@ -429,13 +429,7 @@ class SyntheticMimic3BenchmarkMultitaskDataset(Dataset):
             pickle.dump(state_dict, f)
 
     @classmethod
-    def load(cls, save_path):
-        """
-        Load the dataset from a file.
-        """
-        with open(save_path, 'rb') as f:
-            state_dict = pickle.load(f)
-
+    def from_state_dict(cls, state_dict, requires_grad=True):
         save_version = state_dict['version'] # use this for compatibility
 
         # Initialize a new instance
@@ -448,14 +442,24 @@ class SyntheticMimic3BenchmarkMultitaskDataset(Dataset):
         )
 
         # Restore tensor attributes
-        new_instance.feature_list = [torch.tensor(t, requires_grad=True) for t in state_dict['feature_list']]
-        new_instance.ihm_label_list = [torch.tensor(t, requires_grad=True) for t in state_dict['ihm_label_list']]
-        new_instance.los_time_list = [torch.tensor(t, requires_grad=True) for t in state_dict['los_time_list']]
-        new_instance.pheno_labels_list = [torch.tensor(t, requires_grad=True) for t in state_dict['pheno_labels_list']]
-        new_instance.decomp_labels_list = [torch.tensor(t, requires_grad=True) for t in state_dict['decomp_labels_list']]
+        new_instance.feature_list = [torch.tensor(t, requires_grad=requires_grad) for t in state_dict['feature_list']]
+        new_instance.ihm_label_list = [torch.tensor(t, requires_grad=requires_grad) for t in state_dict['ihm_label_list']]
+        new_instance.los_time_list = [torch.tensor(t, requires_grad=requires_grad) for t in state_dict['los_time_list']]
+        new_instance.pheno_labels_list = [torch.tensor(t, requires_grad=requires_grad) for t in state_dict['pheno_labels_list']]
+        new_instance.decomp_labels_list = [torch.tensor(t, requires_grad=requires_grad) for t in state_dict['decomp_labels_list']]
         new_instance.ihm_pos = torch.tensor(state_dict['ihm_pos'])
         new_instance.ihm_mask = torch.tensor(state_dict['ihm_mask'])
         new_instance.first_5_masks = torch.tensor(state_dict['first_5_masks'])
 
         return new_instance
+
+    @classmethod
+    def load(cls, save_path):
+        """
+        Load the dataset from a file.
+        """
+        with open(save_path, 'rb') as f:
+            state_dict = pickle.load(f)
+
+        return cls.from_state_dict(state_dict)
         

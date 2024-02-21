@@ -71,6 +71,7 @@ def parse_args():
     
     parser_fit = subparsers.add_parser(name='fit', help='fit model to dataset')
     parser_distill = subparsers.add_parser(name='distill', help='distill synthetic data')
+    parser_eval = subparsers.add_parser(name='eval', help='evaluate distilled data')
 
     # arguments for fit task
     parser_fit.add_argument('--tasks', nargs='+', required=True, help='one or more tasks in ["ihm", "los", "pheno", "decomp"]')
@@ -79,6 +80,8 @@ def parse_args():
     parser_distill.add_argument('--tasks', nargs='+', required=True, help='one or more tasks in ["ihm", "los", "pheno", "decomp"]')
     parser_distill.add_argument('--method', type=str, required=True, help='distill method in ["vanilla", "gmatch"]')
 
+    # arguments for eval task
+    
     # parse the args
     args = parser.parse_args()
 
@@ -101,6 +104,9 @@ def parse_args():
 
         if args.method not in ["vanilla", "gmatch"]: # make sure distill method is leagal
             raise NotImplementedError()
+        
+    elif args.exp == 'eval': # process syn set eval arguments
+        pass
         
     else:
         raise NotImplementedError()
@@ -381,6 +387,92 @@ def fit_ihm(args):
     print(f'Best evaluation score: {best_eval_score} (epoch {best_eval_epoch})')
 
 
+def compute_loss(model, data, config, param_and_buffer_dicts=None): # TODO: find a way to refactor this. It's not elegant to be on the upmost level
+    """
+    data: collated batch
+    param_and_buffer_dicts: if not none, model's params and buffers will be replaced in forward pass
+    """
+    if param_and_buffer_dicts is not None:
+        params, buffers = param_and_buffer_dicts
+    else:
+        raise NotImplementedError()
+    (features, padding_masks,
+    ihm_pos, ihm_mask, ihm_label, # note that ihm_label here is 2 dim soft label instead of class index
+    los_labels, los_masks,
+    pheno_labels,
+    decomp_labels, decomp_masks,
+    ) = (
+        data["features"].to(DEVICE), data["padding_masks"].to(DEVICE),
+        data["ihm_pos"].to(DEVICE), data["ihm_mask"].to(DEVICE), data["ihm_label"].to(DEVICE),
+        data["los_labels"].to(DEVICE), data["los_masks"].to(DEVICE),
+        data["pheno_labels"].to(DEVICE),
+        data["decomp_labels"].to(DEVICE), data["decomp_masks"].to(DEVICE),
+        )
+    b_size = features.size(0)
+    # Forward pass
+    # outputs = model(features, padding_masks)
+    outputs = torch.func.functional_call(
+        model, (params, buffers), args=(features, padding_masks)
+    )
+
+    # compute ihm loss
+    ihm_attend = ihm_mask == 1 # valid data points that are gonno attent loss, True if data point at corresponding position is applicable to current task
+    ihm_valid_outputs = outputs["ihm"][torch.arange(b_size),ihm_pos][ihm_attend] # take out the output at index ihm_pos
+    ihm_valid_labels = ihm_label[ihm_attend]
+    if ihm_valid_labels.size() == ihm_valid_outputs.size(): # is soft label, apply softmax before cross_entropy
+        ihm_valid_labels = ihm_valid_labels.softmax(dim=-1)
+    ihm_loss = F.cross_entropy(ihm_valid_outputs, ihm_valid_labels) # F.cross_entropy expect either class probabilities or single class index as target
+
+    # compute los loss
+    los_attend = los_masks == 1
+    los_valid_outputs = outputs["los"][los_attend].squeeze(-1) # (batch_size, seq_len, 1) before squeeze
+    los_valid_labels = los_labels[los_attend] # (batch_size, seq_len)
+    los_loss = F.mse_loss(los_valid_outputs, los_valid_labels)
+
+    # compute pheno loss
+    pheno_valid_outputs = outputs["pheno"][:, -1, :, :] # use only the whole sequence for phenotyping
+    if pheno_labels.size() == pheno_valid_outputs.size(): # is soft label, apply softmax before cross_entropy
+        pheno_labels = pheno_labels.softmax(dim=-1)
+    pheno_loss = 0.0
+    for i in range(pheno_valid_outputs.size(1)):  # iterate over the 25 classifiers
+        logits = pheno_valid_outputs[:, i, :]
+        labels = pheno_labels[:, i] # here shape is either (batch_size, 2) for soft labels or simply (batch_size) for indices
+        loss = F.cross_entropy(logits, labels)
+        pheno_loss += loss
+    
+    # compute decomp loss
+    decomp_attend = decomp_masks == 1
+    decomp_valid_outputs = outputs["decomp"][decomp_attend]
+    decomp_valid_labels = decomp_labels[decomp_attend]
+    if decomp_valid_labels.size() == decomp_valid_outputs.size(): # is soft label, apply softmax before cross_entropy
+        decomp_valid_labels = decomp_valid_labels.softmax(dim=-1)
+    decomp_loss = F.cross_entropy(decomp_valid_outputs, decomp_valid_labels)
+
+    loss_weighted_sum = config.ihm_w * ihm_loss + config.los_w * los_loss + config.pheno_w * pheno_loss + config.decomp_w * decomp_loss
+    return loss_weighted_sum
+
+@dataclass
+class VanillaDistillConfig:
+    n_samples: int = 1 # number of synthetic samples
+    batch_size_syn: int = 1
+    batch_size_real: int = 256 # minibatch size of real datasets
+    max_seq_len: int = 320
+    num_heads: int = 4
+    num_layers: int = 3
+    embed_dim: int = 32
+    n_inner_steps: int = 50
+    n_epochs: int = 100
+    lr_data: float = 1e-3
+    wd_data: float = 1e-4
+    init_lr_model: float = 1e-3
+    lr_lr_model: float = 1e-3
+    min_lr_model: float = 1e-5
+    ihm_w: float = 1
+    los_w: float = 0 # TODO
+    pheno_w: float = 1
+    decomp_w: float = 1
+
+
 def distill(args):
 
     print('Starting distilling experiment...')
@@ -388,26 +480,6 @@ def distill(args):
     print(f'Selected subtasks: {args.tasks}')
 
     if args.method == "vanilla":
-        @dataclass
-        class VanillaDistillConfig:
-            n_samples: int = 1 # number of synthetic samples
-            batch_size_syn: int = 1
-            batch_size_real: int = 256 # minibatch size of real datasets
-            max_seq_len: int = 320
-            num_heads: int = 4
-            num_layers: int = 3
-            embed_dim: int = 32
-            n_inner_steps: int = 50
-            n_epochs: int = 100
-            lr_data: float = 1e-3
-            wd_data: float = 1e-4
-            init_lr_model: float = 1e-3
-            lr_lr_model: float = 1e-3
-            min_lr_model: float = 1e-5
-            ihm_w: float = 1
-            los_w: float = 0 # TODO
-            pheno_w: float = 1
-            decomp_w: float = 1
 
         config = VanillaDistillConfig()
         print(f'Configs: {json.dumps(asdict(config))}')
@@ -438,7 +510,7 @@ def distill(args):
                 num_heads=config.num_heads,
                 num_layers=config.num_layers,
                 embed_dim=config.embed_dim,
-                ).to(DEVICE)
+            ).to(DEVICE)
             return model
         
         # create optimizer for synthetic data
@@ -452,68 +524,6 @@ def distill(args):
             {"params": [lr_model], "lr": config.lr_lr_model}
         ]
         optimizer_data = optim.Adam(grouped_params)
-
-        def compute_loss(model, data, param_and_buffer_dicts=None):
-            """
-            data: collated batch
-            param_and_buffer_dicts: if not none, model's params and buffers will be replaced in forward pass
-            """
-            if param_and_buffer_dicts is not None:
-                params, buffers = param_and_buffer_dicts
-            (features, padding_masks,
-            ihm_pos, ihm_mask, ihm_label, # note that ihm_label here is 2 dim soft label instead of class index
-            los_labels, los_masks,
-            pheno_labels,
-            decomp_labels, decomp_masks,
-            ) = (
-                data["features"].to(DEVICE), data["padding_masks"].to(DEVICE),
-                data["ihm_pos"].to(DEVICE), data["ihm_mask"].to(DEVICE), data["ihm_label"].to(DEVICE),
-                data["los_labels"].to(DEVICE), data["los_masks"].to(DEVICE),
-                data["pheno_labels"].to(DEVICE),
-                data["decomp_labels"].to(DEVICE), data["decomp_masks"].to(DEVICE),
-                )
-            b_size = features.size(0)
-            # Forward pass
-            # outputs = model(features, padding_masks)
-            outputs = torch.func.functional_call(
-                model, (params, buffers), args=(features, padding_masks)
-            )
-
-            # compute ihm loss
-            ihm_attend = ihm_mask == 1 # valid data points that are gonno attent loss, True if data point at corresponding position is applicable to current task
-            ihm_valid_outputs = outputs["ihm"][torch.arange(b_size),ihm_pos][ihm_attend] # take out the output at index ihm_pos
-            ihm_valid_labels = ihm_label[ihm_attend]
-            if ihm_valid_labels.size() == ihm_valid_outputs.size(): # is soft label, apply softmax before cross_entropy
-                ihm_valid_labels = ihm_valid_labels.softmax(dim=-1)
-            ihm_loss = F.cross_entropy(ihm_valid_outputs, ihm_valid_labels) # F.cross_entropy expect either class probabilities or single class index as target
-
-            # compute los loss
-            los_attend = los_masks == 1
-            los_valid_outputs = outputs["los"][los_attend].squeeze(-1) # (batch_size, seq_len, 1) before squeeze
-            los_valid_labels = los_labels[los_attend] # (batch_size, seq_len)
-            los_loss = F.mse_loss(los_valid_outputs, los_valid_labels)
-
-            # compute pheno loss
-            pheno_valid_outputs = outputs["pheno"][:, -1, :, :] # use only the whole sequence for phenotyping
-            if pheno_labels.size() == pheno_valid_outputs.size(): # is soft label, apply softmax before cross_entropy
-                pheno_labels = pheno_labels.softmax(dim=-1)
-            pheno_loss = 0.0
-            for i in range(pheno_valid_outputs.size(1)):  # iterate over the 25 classifiers
-                logits = pheno_valid_outputs[:, i, :]
-                labels = pheno_labels[:, i] # here shape is either (batch_size, 2) for soft labels or simply (batch_size) for indices
-                loss = F.cross_entropy(logits, labels)
-                pheno_loss += loss
-            
-            # compute decomp loss
-            decomp_attend = decomp_masks == 1
-            decomp_valid_outputs = outputs["decomp"][decomp_attend]
-            decomp_valid_labels = decomp_labels[decomp_attend]
-            if decomp_valid_labels.size() == decomp_valid_outputs.size(): # is soft label, apply softmax before cross_entropy
-                decomp_valid_labels = decomp_valid_labels.softmax(dim=-1)
-            decomp_loss = F.cross_entropy(decomp_valid_outputs, decomp_valid_labels)
-
-            loss_weighted_sum = config.ihm_w * ihm_loss + config.los_w * los_loss + config.pheno_w * pheno_loss + config.decomp_w * decomp_loss
-            return loss_weighted_sum
         
         loss_real_e = []
         for e in range(config.n_epochs): # epoch
@@ -534,7 +544,7 @@ def distill(args):
                     # get the i-th minibatch of distilled data
                     raw_batch_syn = syn_set.get_minibatch(i)
                     batch_syn = collator.collate_fn(raw_batch_syn)
-                    loss_syn = compute_loss(model, batch_syn, (params, buffers))
+                    loss_syn = compute_loss(model, batch_syn, config, (params, buffers))
                     # update model's params manually
                     for name in params.keys():
                         param = params[name]
@@ -542,7 +552,7 @@ def distill(args):
                         new_param = param - lr_model * grad
                         params[name] = new_param
                 
-                loss_real = compute_loss(model, batch_real, (params, buffers))
+                loss_real = compute_loss(model, batch_real, config, (params, buffers))
                 optimizer_data.zero_grad()
                 loss_real.backward()
                 optimizer_data.step()
@@ -552,7 +562,7 @@ def distill(args):
                 loss_real_o.append(loss_real.item())
 
             loss_real_e.append(sum(loss_real_o) / len(loss_real_o))
-            print(f'! epoch {e} completed, avg real loss over this epoch: {loss_real_e[-1]:.4f}')
+            print(f'! epoch {e+1} completed, avg real loss over this epoch: {loss_real_e[-1]:.4f}')
             if not args.no_save:
 
                 # save distilled data
@@ -573,14 +583,115 @@ def distill(args):
                         }, f)
     else:
         raise NotImplementedError() # TODO
+
+
+
+def eval(args):
+    # support glob, get the lexi largest one if multiple matches
+    state_dict_path = '../saved_data/20240220-235041/e10_*.pkl'
+    path_match = glob.glob(state_dict_path)
+    if len(path_match) < 1:
+        raise Exception(f'No synthetic set state dict file found at "{state_dict_path}"')
+    path_match.sort()
+    true_path = path_match[-1]
+
+    with open(true_path, 'rb') as f:
+        state_dict = pickle.load(f)
+    syn_set = SyntheticMimic3BenchmarkMultitaskDataset.from_state_dict(state_dict, requires_grad=False)
+    lr = state_dict['lr_model']
+    
+    config = VanillaDistillConfig()
+    model = TransformerEncoderPlusMimic3BenchmarkMultitaskHeads(
+        num_features=state_dict['n_features'],
+        max_seq_len=state_dict['seq_len'],
+        dropout=0,
+        num_heads=4,
+        num_layers=3,
+        embed_dim=32,
+    ).to(DEVICE)
+
+    # load real datasets
+    # train_set = Mimic3BenchmarkMultitaskDataset("../data/mimic3/benchmark/multitask/train/saves/*.pkl") # if passing a glob, it'll load the latest save satisfying the glob
+    test_set = Mimic3BenchmarkMultitaskDataset("../data/mimic3/benchmark/multitask/test/saves/*.pkl")
+    print(f"Datasets loaded. Test set size: {len(test_set)}")
+
+    # use first sample in train set as example
+    example_tensor = test_set[0]["feature"]
+    num_features = example_tensor.shape[1]
+
+    # create dataloaders
+    collator = Mimic3BenchmarkMultitaskDatasetCollator(max_seq_len=config.max_seq_len, tasks={'ihm', 'los', 'pheno', 'decomp'}) # pass in the tasks set
+    # train_loader = DataLoader(train_set, batch_size=config.batch_size_real, shuffle=True, collate_fn=collator.collate_fn)
+    test_loader = DataLoader(test_set, batch_size=config.batch_size_real, shuffle=False, collate_fn=collator.collate_fn)
+
+    model.train()
+    params = dict(model.named_parameters())
+    buffers = dict(model.named_buffers())
+    for i in range(config.n_inner_steps): # inner loop
+        # get the i-th minibatch of distilled data
+        print(i)
+        raw_batch_syn = syn_set.get_minibatch(i)
+        batch_syn = collator.collate_fn(raw_batch_syn)
+        loss_syn = compute_loss(model, batch_syn, config, (params, buffers))
+        # update model's params manually
+        for name in params.keys():
+            param = params[name]
+            grad, = torch.autograd.grad(loss_syn, param, create_graph=True)
+            new_param = param - lr * grad
+            params[name] = new_param
+    
+    # Evaluation
+    print(f"Evaluating trained (on synthetic data) model on real data, ihm task only")
+    criterion = nn.CrossEntropyLoss()
+    model.eval()
+    total_eval_loss = 0
+    total_eval_samples = 0
+    eval_preds = []
+    eval_true_labels = []
+    with torch.no_grad():
+        for data in test_loader:
+            # Move tensors to the specified DEVICE
+            features, padding_masks, ihm_pos, ihm_mask, ihm_label = (
+            data["features"].to(DEVICE),
+            data["padding_masks"].to(DEVICE),
+            data["ihm_pos"].to(DEVICE),
+            data["ihm_mask"].to(DEVICE),
+            data["ihm_label"].to(DEVICE),
+            )
+
+            b_size = features.size(0)
+            # Forward pass
+            outputs = torch.func.functional_call(
+                model, (params, buffers), args=(features, padding_masks)
+            )['ihm']
+            valid_idx = ihm_mask == 1 # valid data point masks, True if data point at corresponding position is applicable to current task
+            valid_outputs = outputs[torch.arange(b_size),ihm_pos][valid_idx]
+            valid_labels = ihm_label[valid_idx]
+
+            loss = criterion(valid_outputs, valid_labels)
+            total_eval_loss += loss.item()
+            total_eval_samples += torch.sum(valid_idx).item()
+
+            # log data for computing auroc score
+            probs = torch.softmax(valid_outputs.detach(), dim=1) # Apply softmax to logits
+            pos_cls_probs = probs[:, 1]
+            # Store predictions and labels
+            eval_preds.extend(pos_cls_probs.cpu().numpy())
+            eval_true_labels.extend(valid_labels.cpu().numpy())
+    average_eval_loss = total_eval_loss / total_eval_samples
+    eval_auroc_score = roc_auc_score(eval_true_labels, eval_preds)
+
+    print(f"---------Results----------")
+    print(f"Eval samples: {total_eval_samples}")
+    print(f"Eval loss: {average_eval_loss:.4f}")
+    print(f"Eval AUROC score: {eval_auroc_score:.4f}")
     
 
-def test():
+def foo():
     # create synthetic dataset
     syn_set = SyntheticMimic3BenchmarkMultitaskDataset(n_samples=1, seq_len=320, n_features=17, tasks={"ihm", "los"}, batch_size=1)
     syn_set.save("test.pkl")
     load_syn_set = SyntheticMimic3BenchmarkMultitaskDataset.load("test.pkl")
-
 
 
 def main():
@@ -589,6 +700,8 @@ def main():
         fit_ihm(args) # currently only ihm single task fitting
     elif args.exp == 'distill':
         distill(args)
+    elif args.exp == 'eval':
+        eval(args)
 
 
 if __name__ == "__main__":
