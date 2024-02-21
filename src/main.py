@@ -564,9 +564,10 @@ def distill(args):
                 syn_set_state_dict["lr_model"] = lr_model.item()
                 with open(current_epoch_save_path, 'wb') as f:
                     pickle.dump(syn_set_state_dict, f)
+                print(f"! synthetic dataset at epoch {e+1} saved as {current_epoch_save_path}")
 
                 # save training curves
-                with open(os.path.join(OUT_DIR, 'curves.json'), 'wb') as f:
+                with open(os.path.join(OUT_DIR, 'curves.json'), 'w') as f:
                     json.dump({
                         'loss_real_e': loss_real_e,
                         }, f)
