@@ -398,7 +398,7 @@ def distill(args):
             num_layers: int = 3
             embed_dim: int = 32
             n_inner_steps: int = 50
-            n_epochs: int = 1000
+            n_epochs: int = 100
             lr_data: float = 1e-3
             wd_data: float = 1e-4
             init_lr_model: float = 1e-3
@@ -548,17 +548,38 @@ def distill(args):
                 optimizer_data.step()
                 # lr_model can't be negative
                 lr_model.data.clamp_(min=config.min_lr_model)
-                print(f'outer step {o+1}, avg real loss = {loss_real.item():.4f}')
+                print(f'outer step {o+1}, avg real loss = {loss_real.item():.4f}, lr_model = {lr_model.item():.4f}')
                 loss_real_o.append(loss_real.item())
 
             loss_real_e.append(sum(loss_real_o) / len(loss_real_o))
             print(f'! epoch {e} completed, avg real loss over this epoch: {loss_real_e[-1]:.4f}')
             if not args.no_save:
-                with open(os.path.join(OUT_DIR, f'e{e}.pkl'), 'wb') as f:
-                    pickle.dump(syn_set, f)
-                print(f"! synthetic dataset at epoch {e} saved as {os.path.join(OUT_DIR, f'e{e}.pkl')}")
+
+                # save distilled data
+                current_epoch_save_path = os.path.join(OUT_DIR, f'e{e+1}_loss={loss_real_e[-1]:.4f}.pkl')
+                # with open(current_epoch_save_path, 'wb') as f:
+                #     pickle.dump(syn_set, f)
+                # print(f"! synthetic dataset at epoch {e+1} saved as {current_epoch_save_path}")
+                syn_set_state_dict = syn_set.get_state_dict()
+                syn_set_state_dict["lr_model"] = lr_model.item()
+                with open(current_epoch_save_path, 'wb') as f:
+                    pickle.dump(syn_set_state_dict, f)
+
+                # save training curves
+                with open(os.path.join(OUT_DIR, 'curves.json'), 'wb') as f:
+                    json.dump({
+                        'loss_real_e': loss_real_e,
+                        }, f)
     else:
         raise NotImplementedError() # TODO
+    
+
+def test():
+    # create synthetic dataset
+    syn_set = SyntheticMimic3BenchmarkMultitaskDataset(n_samples=1, seq_len=320, n_features=17, tasks={"ihm", "los"}, batch_size=1)
+    syn_set.save("test.pkl")
+    load_syn_set = SyntheticMimic3BenchmarkMultitaskDataset.load("test.pkl")
+
 
 
 def main():
@@ -570,4 +591,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    test()

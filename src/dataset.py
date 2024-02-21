@@ -236,6 +236,7 @@ class Mimic3BenchmarkMultitaskDatasetCollatorLegacy: # this collator assume raw 
         return batch
     
 class Mimic3BenchmarkMultitaskDatasetCollator:
+
     def __init__(self, max_seq_len, tasks: set):
         
         self.max_seq_len = max_seq_len
@@ -340,6 +341,8 @@ class SyntheticMimic3BenchmarkMultitaskDataset(Dataset):
     """
     Synthetic dataset for multitask mimic3 benchmark.
     """
+    version = "1.0"
+
     def __init__(self, n_samples: int, seq_len: int, n_features: int, tasks: set, batch_size: int):
         
         self.n_samples = n_samples
@@ -349,7 +352,7 @@ class SyntheticMimic3BenchmarkMultitaskDataset(Dataset):
         self.batch_size = batch_size
 
         # all learnable things as separate lists
-        self.feature_list = [torch.randn((seq_len, n_features), requires_grad=True) for _ in range(n_samples)]
+        self.feature_list = [torch.randn((seq_len, n_features), dtype=torch.float, requires_grad=True) for _ in range(n_samples)]
         self.ihm_label_list = [torch.randn(2, dtype=torch.float, requires_grad=True) for _ in range(n_samples)] # soft labels' logits, return to learner after softmax
         self.los_time_list = [torch.randn(1, dtype=torch.float, requires_grad=True) for _ in range(n_samples)]
         self.pheno_labels_list = [torch.randn((25, 2), dtype=torch.float, requires_grad=True) for _ in range(n_samples)] # soft labels' logits, return to learner after softmax
@@ -397,4 +400,62 @@ class SyntheticMimic3BenchmarkMultitaskDataset(Dataset):
         for i in range(i_start, i_start+self.batch_size):
             batch.append(self.__getitem__(i%self.n_samples))
         return batch
+    
+    def get_state_dict(self):
+        state_dict = {
+            'version': self.version,
+            'n_samples': self.n_samples,
+            'tasks': self.tasks,
+            'seq_len': self.seq_len,
+            'n_features': self.n_features,
+            'batch_size': self.batch_size,
+            'feature_list': [t.detach().cpu().numpy() for t in self.feature_list],
+            'ihm_label_list': [t.detach().cpu().numpy() for t in self.ihm_label_list],
+            'los_time_list': [t.detach().cpu().numpy() for t in self.los_time_list],
+            'pheno_labels_list': [t.detach().cpu().numpy() for t in self.pheno_labels_list],
+            'decomp_labels_list': [t.detach().cpu().numpy() for t in self.decomp_labels_list],
+            'ihm_pos': self.ihm_pos.detach().cpu().numpy(),
+            'ihm_mask': self.ihm_mask.detach().cpu().numpy(),
+            'first_5_masks': self.first_5_masks.detach().cpu().numpy(),
+        }
+        return state_dict
+    
+    def save(self, save_path):
+        """
+        Save the dataset instance to a file.
+        """
+        state_dict = self.get_state_dict()
+        with open(save_path, 'wb') as f:
+            pickle.dump(state_dict, f)
+
+    @classmethod
+    def load(cls, save_path):
+        """
+        Load the dataset from a file.
+        """
+        with open(save_path, 'rb') as f:
+            state_dict = pickle.load(f)
+
+        save_version = state_dict['version'] # use this for compatibility
+
+        # Initialize a new instance
+        new_instance = cls(
+            n_samples=state_dict['n_samples'],
+            tasks=state_dict['tasks'],
+            seq_len=state_dict['seq_len'],
+            n_features=state_dict['n_features'],
+            batch_size=state_dict['batch_size']
+        )
+
+        # Restore tensor attributes
+        new_instance.feature_list = [torch.tensor(t, requires_grad=True) for t in state_dict['feature_list']]
+        new_instance.ihm_label_list = [torch.tensor(t, requires_grad=True) for t in state_dict['ihm_label_list']]
+        new_instance.los_time_list = [torch.tensor(t, requires_grad=True) for t in state_dict['los_time_list']]
+        new_instance.pheno_labels_list = [torch.tensor(t, requires_grad=True) for t in state_dict['pheno_labels_list']]
+        new_instance.decomp_labels_list = [torch.tensor(t, requires_grad=True) for t in state_dict['decomp_labels_list']]
+        new_instance.ihm_pos = torch.tensor(state_dict['ihm_pos'])
+        new_instance.ihm_mask = torch.tensor(state_dict['ihm_mask'])
+        new_instance.first_5_masks = torch.tensor(state_dict['first_5_masks'])
+
+        return new_instance
         
