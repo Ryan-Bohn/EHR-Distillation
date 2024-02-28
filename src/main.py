@@ -391,76 +391,83 @@ def compute_loss(model, data, config, param_and_buffer_dicts=None): # TODO: find
     """
     data: collated batch
     param_and_buffer_dicts: if not none, model's params and buffers will be replaced in forward pass
+    config: for accessing weights assigned to different subtasks
     """
     if param_and_buffer_dicts is not None:
         params, buffers = param_and_buffer_dicts
     else:
         raise NotImplementedError()
-    (features, padding_masks,
-    ihm_pos, ihm_mask, ihm_label, # note that ihm_label here is 2 dim soft label instead of class index
-    los_labels, los_masks,
-    pheno_labels,
-    decomp_labels, decomp_masks,
-    ) = (
-        data["features"].to(DEVICE), data["padding_masks"].to(DEVICE),
-        data["ihm_pos"].to(DEVICE), data["ihm_mask"].to(DEVICE), data["ihm_label"].to(DEVICE),
-        data["los_labels"].to(DEVICE), data["los_masks"].to(DEVICE),
-        data["pheno_labels"].to(DEVICE),
-        data["decomp_labels"].to(DEVICE), data["decomp_masks"].to(DEVICE),
-        )
+    features, padding_masks = data["features"].to(DEVICE), data["padding_masks"].to(DEVICE)
     b_size = features.size(0)
+
     # Forward pass
     # outputs = model(features, padding_masks)
     outputs = torch.func.functional_call(
         model, (params, buffers), args=(features, padding_masks)
     )
-
-    # compute ihm loss
-    ihm_attend = ihm_mask == 1 # valid data points that are gonno attent loss, True if data point at corresponding position is applicable to current task
-    ihm_valid_outputs = outputs["ihm"][torch.arange(b_size),ihm_pos][ihm_attend] # take out the output at index ihm_pos
-    ihm_valid_labels = ihm_label[ihm_attend]
-    if ihm_valid_labels.size() == ihm_valid_outputs.size(): # is soft label, apply softmax before cross_entropy
-        ihm_valid_labels = ihm_valid_labels.softmax(dim=-1)
-    ihm_loss = F.cross_entropy(ihm_valid_outputs, ihm_valid_labels) # F.cross_entropy expect either class probabilities or single class index as target
-
-    # compute los loss
-    los_attend = los_masks == 1
-    los_valid_outputs = outputs["los"][los_attend].squeeze(-1) # (batch_size, seq_len, 1) before squeeze
-    los_valid_labels = los_labels[los_attend] # (batch_size, seq_len)
-    los_loss = F.mse_loss(los_valid_outputs, los_valid_labels)
-
-    # compute pheno loss
-    pheno_valid_outputs = outputs["pheno"][:, -1, :, :] # use only the whole sequence for phenotyping
-    if pheno_labels.size() == pheno_valid_outputs.size(): # is soft label, apply softmax before cross_entropy
-        pheno_labels = pheno_labels.softmax(dim=-1)
-    pheno_loss = 0.0
-    for i in range(pheno_valid_outputs.size(1)):  # iterate over the 25 classifiers
-        logits = pheno_valid_outputs[:, i, :]
-        labels = pheno_labels[:, i] # here shape is either (batch_size, 2) for soft labels or simply (batch_size) for indices
-        loss = F.cross_entropy(logits, labels)
-        pheno_loss += loss
     
-    # compute decomp loss
-    decomp_attend = decomp_masks == 1
-    decomp_valid_outputs = outputs["decomp"][decomp_attend]
-    decomp_valid_labels = decomp_labels[decomp_attend]
-    if decomp_valid_labels.size() == decomp_valid_outputs.size(): # is soft label, apply softmax before cross_entropy
-        decomp_valid_labels = decomp_valid_labels.softmax(dim=-1)
-    decomp_loss = F.cross_entropy(decomp_valid_outputs, decomp_valid_labels)
+    # Backward pass
+    subtask_losses = []
+    # compute the following subtask losses only if corresponding key is in data dict
+    if "ihm_label" in data:
+        ihm_pos, ihm_mask, ihm_label = data["ihm_pos"].to(DEVICE), data["ihm_mask"].to(DEVICE), data["ihm_label"].to(DEVICE)
+        # note that ihm_label here is 2 dim soft label instead of class index
+        # compute ihm loss
+        ihm_attend = ihm_mask == 1 # valid data points that are gonno attent loss, True if data point at corresponding position is applicable to current task
+        ihm_valid_outputs = outputs["ihm"][torch.arange(b_size),ihm_pos][ihm_attend] # take out the output at index ihm_pos
+        ihm_valid_labels = ihm_label[ihm_attend]
+        if ihm_valid_labels.size() == ihm_valid_outputs.size(): # is soft label, apply softmax before cross_entropy
+            ihm_valid_labels = ihm_valid_labels.softmax(dim=-1)
+        ihm_loss = F.cross_entropy(ihm_valid_outputs, ihm_valid_labels) # F.cross_entropy expect either class probabilities or single class index as target
+        subtask_losses.append(ihm_loss * config.ihm_w)
 
-    loss_weighted_sum = config.ihm_w * ihm_loss + config.los_w * los_loss + config.pheno_w * pheno_loss + config.decomp_w * decomp_loss
+    if "los_labels" in data:
+        los_labels, los_masks = data["los_labels"].to(DEVICE), data["los_masks"].to(DEVICE)
+        # compute los loss
+        los_attend = los_masks == 1
+        los_valid_outputs = outputs["los"][los_attend].squeeze(-1) # (batch_size, seq_len, 1) before squeeze
+        los_valid_labels = los_labels[los_attend] # (batch_size, seq_len)
+        los_loss = F.mse_loss(los_valid_outputs, los_valid_labels)
+        subtask_losses.append(los_loss * config.los_w)
+
+    if "pheno_labels" in data:
+        pheno_labels = data["pheno_labels"].to(DEVICE)
+        # compute pheno loss
+        pheno_valid_outputs = outputs["pheno"][:, -1, :, :] # use only the whole sequence for phenotyping
+        if pheno_labels.size() == pheno_valid_outputs.size(): # is soft label, apply softmax before cross_entropy
+            pheno_labels = pheno_labels.softmax(dim=-1)
+        pheno_loss = 0.0
+        for i in range(pheno_valid_outputs.size(1)):  # iterate over the 25 classifiers
+            logits = pheno_valid_outputs[:, i, :]
+            labels = pheno_labels[:, i] # here shape is either (batch_size, 2) for soft labels or simply (batch_size) for indices
+            loss = F.cross_entropy(logits, labels)
+            pheno_loss += loss
+        subtask_losses.append(pheno_loss * config.pheno_w)
+
+    if "decomp_labels" in data:
+        decomp_labels, decomp_masks = data["decomp_labels"].to(DEVICE), data["decomp_masks"].to(DEVICE)
+        # compute decomp loss
+        decomp_attend = decomp_masks == 1
+        decomp_valid_outputs = outputs["decomp"][decomp_attend]
+        decomp_valid_labels = decomp_labels[decomp_attend]
+        if decomp_valid_labels.size() == decomp_valid_outputs.size(): # is soft label, apply softmax before cross_entropy
+            decomp_valid_labels = decomp_valid_labels.softmax(dim=-1)
+        decomp_loss = F.cross_entropy(decomp_valid_outputs, decomp_valid_labels)
+        subtask_losses.append(decomp_loss * config.decomp_w)
+
+    loss_weighted_sum = sum(subtask_losses)
     return loss_weighted_sum
 
 @dataclass
 class VanillaDistillConfig:
-    n_samples: int = 1 # number of synthetic samples
+    n_samples: int = 1 # number of synthetic samples TODO: more
     batch_size_syn: int = 1
     batch_size_real: int = 256 # minibatch size of real datasets
     max_seq_len: int = 320
     num_heads: int = 4
     num_layers: int = 3
     embed_dim: int = 32
-    n_inner_steps: int = 50
+    n_inner_steps: int = 10 # TODO: 50
     n_epochs: int = 100
     lr_data: float = 1e-3
     wd_data: float = 1e-4
@@ -469,8 +476,8 @@ class VanillaDistillConfig:
     min_lr_model: float = 1e-5
     ihm_w: float = 1
     los_w: float = 0 # TODO
-    pheno_w: float = 1
-    decomp_w: float = 1
+    pheno_w: float = 0
+    decomp_w: float = 0
 
 
 def distill(args):
@@ -588,7 +595,7 @@ def distill(args):
 
 def eval(args):
     # support glob, get the lexi largest one if multiple matches
-    state_dict_path = '../saved_data/20240220-235041/e10_*.pkl'
+    state_dict_path = '../saved_data/20240220-235041/e42_*.pkl'
     path_match = glob.glob(state_dict_path)
     if len(path_match) < 1:
         raise Exception(f'No synthetic set state dict file found at "{state_dict_path}"')
@@ -636,9 +643,9 @@ def eval(args):
         # update model's params manually
         for name in params.keys():
             param = params[name]
-            grad, = torch.autograd.grad(loss_syn, param, create_graph=True)
+            grad, = torch.autograd.grad(loss_syn, param, retain_graph=True)
             new_param = param - lr * grad
-            params[name] = new_param
+            params[name] = new_param.detach().requires_grad_(True)
     
     # Evaluation
     print(f"Evaluating trained (on synthetic data) model on real data, ihm task only")

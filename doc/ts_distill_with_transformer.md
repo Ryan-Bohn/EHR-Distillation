@@ -41,7 +41,7 @@ Training criterion: MSE loss; Eval metric: MSE loss averaged over each time step
 
 ![Figure_1](assets/Figure_1.png)
 
-### In hospital mortality classification preliminary
+## In hospital mortality classification preliminary
 
 All same as previous, except in transformer, instead of a regressor there's a forward layer mapping into 2-dim logit vector for binary classification.
 
@@ -70,9 +70,11 @@ Then, do a hyperparameters search:
 | 19289511     | 3          | 4         | 32        | 0.2     | 1e-3 | 5e-4 | 89         | **0.8616**      |
 | 19313189     | 3          | 4         | 32        | 0.3     | 1e-3 | 5e-4 | 95         | 0.8580          |
 
-###Vanilla (multitask) dataset distillation:
+## Vanilla (multitask) dataset distillation
 
 LOS task loss is extremely large and when its weight is not 0 nan will occur in both model parameters and learnable synthetic data. So temporarily except this task, considering only the rest 3.
+
+![Figure_1](assets/Figure_2.png)
 
 Evaluation (by train-on-synthetic, eval-on-real) at some distillation epochs:
 
@@ -83,7 +85,42 @@ Eval samples: 3235
 Eval loss: 0.0027
 Eval AUROC score: **0.7516**
 
+## Distillation: single task (ihm) (2/28~)
 
+slurm-a100.sh:
+
+```
+python -u main.py distill --method vanilla --tasks ihm
+```
+
+2 experiments:
+
+- 19875321: on A100
+
+  ```
+  @dataclass
+  class VanillaDistillConfig:
+      n_samples: int = 1 # number of synthetic samples
+      batch_size_syn: int = 1
+      batch_size_real: int = 256 # minibatch size of real datasets
+      max_seq_len: int = 320
+      num_heads: int = 4
+      num_layers: int = 3
+      embed_dim: int = 32
+      n_inner_steps: int = 50
+      n_epochs: int = 100
+      lr_data: float = 1e-3
+      wd_data: float = 1e-4
+      init_lr_model: float = 1e-3
+      lr_lr_model: float = 1e-3
+      min_lr_model: float = 1e-5
+      ihm_w: float = 1
+      los_w: float = 0 # TODO
+      pheno_w: float = 0
+      decomp_w: float = 0
+  ```
+
+- 19875323: inner loops 50 -> 10 (make it possible to run on gpu with less memory)
 
 
 
