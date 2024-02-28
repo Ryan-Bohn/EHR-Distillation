@@ -597,19 +597,22 @@ def distill(args):
 
 def eval(args):
     # support glob, get the lexi largest one if multiple matches
-    state_dict_path = '../saved_data/20240220-235041/e42_*.pkl'
+    state_dict_path = '../saved_data/20240228-07*/e53_*.pkl'
     path_match = glob.glob(state_dict_path)
     if len(path_match) < 1:
         raise Exception(f'No synthetic set state dict file found at "{state_dict_path}"')
     path_match.sort()
     true_path = path_match[-1]
-
+    print(f"Loading synthetic dataset from {true_path}")
     with open(true_path, 'rb') as f:
         state_dict = pickle.load(f)
     syn_set = SyntheticMimic3BenchmarkMultitaskDataset.from_state_dict(state_dict, requires_grad=False)
     lr = state_dict['lr_model']
     
     config = VanillaDistillConfig()
+    config.n_inner_steps = 10
+    config.n_samples = 10
+    config.batch_size_syn = 10
     model = TransformerEncoderPlusMimic3BenchmarkMultitaskHeads(
         num_features=state_dict['n_features'],
         max_seq_len=state_dict['seq_len'],
@@ -620,7 +623,7 @@ def eval(args):
     ).to(DEVICE)
 
     # load real datasets
-    # train_set = Mimic3BenchmarkMultitaskDataset("../data/mimic3/benchmark/multitask/train/saves/*.pkl") # if passing a glob, it'll load the latest save satisfying the glob
+    train_set = Mimic3BenchmarkMultitaskDataset("../data/mimic3/benchmark/multitask/train/saves/*.pkl") # if passing a glob, it'll load the latest save satisfying the glob
     test_set = Mimic3BenchmarkMultitaskDataset("../data/mimic3/benchmark/multitask/test/saves/*.pkl")
     print(f"Datasets loaded. Test set size: {len(test_set)}")
 
@@ -630,17 +633,20 @@ def eval(args):
 
     # create dataloaders
     collator = Mimic3BenchmarkMultitaskDatasetCollator(max_seq_len=config.max_seq_len, tasks={'ihm', 'los', 'pheno', 'decomp'}) # pass in the tasks set
-    # train_loader = DataLoader(train_set, batch_size=config.batch_size_real, shuffle=True, collate_fn=collator.collate_fn)
+    train_loader = DataLoader(train_set, batch_size=config.batch_size_real, shuffle=True, collate_fn=collator.collate_fn)
     test_loader = DataLoader(test_set, batch_size=config.batch_size_real, shuffle=False, collate_fn=collator.collate_fn)
 
+    RANDOM = False # random sample from true train set
+    batch_syn = collator.collate_fn([train_set[torch.randint(0, len(train_set), (1,))]])
     model.train()
     params = dict(model.named_parameters())
     buffers = dict(model.named_buffers())
     for i in range(config.n_inner_steps): # inner loop
         # get the i-th minibatch of distilled data
         print(i)
-        raw_batch_syn = syn_set.get_minibatch(i)
-        batch_syn = collator.collate_fn(raw_batch_syn)
+        if not RANDOM:
+            raw_batch_syn = syn_set.get_minibatch(i)
+            batch_syn = collator.collate_fn(raw_batch_syn)
         loss_syn = compute_loss(model, batch_syn, config, (params, buffers))
         # update model's params manually
         for name in params.keys():
@@ -687,7 +693,7 @@ def eval(args):
             # Store predictions and labels
             eval_preds.extend(pos_cls_probs.cpu().numpy())
             eval_true_labels.extend(valid_labels.cpu().numpy())
-    average_eval_loss = total_eval_loss / total_eval_samples
+    average_eval_loss = total_eval_loss / len(test_loader)
     eval_auroc_score = roc_auc_score(eval_true_labels, eval_preds)
 
     print(f"---------Results----------")

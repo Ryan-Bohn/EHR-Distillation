@@ -93,9 +93,9 @@ slurm-a100.sh:
 python -u main.py distill --method vanilla --tasks ihm
 ```
 
-2 experiments:
+The experiments:
 
-- 19875321: on A100
+- 19875567: on A100
 
   ```
   @dataclass
@@ -120,7 +120,8 @@ python -u main.py distill --method vanilla --tasks ihm
       decomp_w: float = 0
   ```
 
-- 19875323: inner loops 50 -> 10 (make it possible to run on gpu with less memory)
+- 19875566: inner loops 50 -> 10 (make it possible to run on gpu with less memory)
+- 19875577: on A100,  inner loops 50 -> 10, n samples 1 -> 10
 
 
 
