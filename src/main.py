@@ -556,6 +556,8 @@ def distill(args):
                     for name in params.keys():
                         param = params[name]
                         grad, = torch.autograd.grad(loss_syn, param, create_graph=True, allow_unused=True)
+                        if grad is None:
+                            continue
                         new_param = param - lr_model * grad
                         params[name] = new_param
                 
