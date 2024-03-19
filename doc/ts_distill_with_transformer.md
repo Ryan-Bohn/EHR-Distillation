@@ -6,8 +6,10 @@ Run these preprocessing scripts first:
 
 ```shell
 cd src
-python preprocess.py -n mimic3benchmark -d ../data/mimic3/benchmark/multitask/
+python preprocess.py -n mimic3benchmark -d ../data/mimic3/benchmark/multitask/ --sr 1.0
 ```
+
+Preprocessed data saved as `./data/mimic3/benchmark/multitask/saves/train/20240214-*.pkl` and `./data/mimic3/benchmark/multitask/saves/test/20240214-*.pkl`.
 
 Some output statistics:
 
@@ -85,9 +87,11 @@ Eval samples: 3235
 Eval loss: 0.0027
 Eval AUROC score: **0.7516**
 
-## Distillation: single task (ihm) (2/28~)
+## Distillation: single tasks (2/28~)
 
-slurm-a100.sh:
+### IHM
+
+slurm-a100.sh and slurm.sh:
 
 ```
 python -u main.py distill --method vanilla --tasks ihm
@@ -123,13 +127,52 @@ The experiments:
 - 19875566: inner loops 50 -> 10 (make it possible to run on gpu with less memory)
 - 19875577: on A100,  inner loops 50 -> 10, n samples 1 -> 10
 
+### LOS
+
+```
+python -u main.py distill --method vanilla --tasks los
+```
+
+- 20053180: 1 sample, 50 inner loop
+- 20179715: same, but on a100 (more epochs)
+
+### PHENO
+
+```
+python -u main.py distill --method vanilla --tasks pheno
+```
+
+- 20053181: 1 sample, 50 inner loop
+- 20179724: same, but on a100 (more epochs)
+
+### DECOMP
+
+```
+python -u main.py distill --method vanilla --tasks decomp
+```
+
+- 20053186: 1 sample, 50 inner loop
+- 20179726: same, but on a100 (more epochs)
 
 
-Timestamp encoding: TODO
 
+## Timestamp encoding (3/6~)
 
+Run these preprocessing scripts first:
 
+```shell
+cd src
+python preprocess.py -n mimic3benchmark -d ../data/mimic3/benchmark/multitask/
+```
 
+Preprocessed data saved as `./data/mimic3/benchmark/multitask/saves/train/20240319-*.pkl` and `./data/mimic3/benchmark/multitask/saves/test/20240319-*.pkl`.
+
+Some output statistics:
+
+| split | dataset size (#episodes) | valid size | max ts length | avg ts length | std ts length |
+| ----- | ------------------------ | ---------- | ------------- | ------------- | ------------- |
+| train | 35621                    | 35571      | 44018         | 134.47        | 462.63        |
+| test  | 6281                     | 6273       | 5516          | 133.95        | 238.04        |
 
 
 

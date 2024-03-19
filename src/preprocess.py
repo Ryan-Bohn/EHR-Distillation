@@ -130,9 +130,31 @@ class Mimic3BenchmarkDatasetPreprocessor:
             return value
         
     def __init__(self, sr=1., tensor=True, one_hot=False, strict=False):
+        """
+        If sample rate (sr) is not a positive number or is None, the preprocessor won't resample the data.
+        "Hour" will remain to be the first column of feature tensors.
+        Note that because the mimic3 benchmark dataset is natively constructed with a sample rate of 1 hour,
+        using any other sample rate will result in a mismatched length between the feature sequence and the labels for LOS and decomposition tasks
+        """
         self.sr = sr
+        if self.sr != 1.:
+            print(f"Sample rate is set as something other than 1 hour ({self.sr}).")
+            print("Please note that mimic 3 benchmark dataset is constructed with a 1 hour sample rate.")
+            print("The lengths of label sequences of los and decomp tasks are meant to match the length of feature sequence if resampled with sr=1hr.")
+            print("By using a different sample rate, these no longer match and the preprocessor will fail to filter out some abnormal episoded with a weird label sequence length.")
+        self.do_resample = sr is not None and sr > 0.
+        if not self.do_resample:
+            print("Sample rate is None or not positive, won't do resampling")
         self.tensor = tensor # whether or not save processed features and labels as torch tensor
+        if self.tensor:
+            print("Feature sequences will be saved as tensors")
+        else:
+            print("Feature tensors will be saved as dataframes")
         self.one_hot = one_hot # whether or not expand categorical feature columns (integer labels) into one-hot representations
+        if self.one_hot:
+            print("Categorical columns will be expanded as one-hot representations")
+        else:
+            print("Categorical columns will remain integer columns")
         self.strict = strict # if set to False, samples with exception will be ignored and not saved to output; if True, exception will be raised
         
 
@@ -269,14 +291,15 @@ class Mimic3BenchmarkDatasetPreprocessor:
                         stats["orig_feature_avg"][name] = self.map_categorical_to_numeric(name, self.feature_dict[name]["avg"])
 
         # resample
-        print(f"Resampling to {self.sr}h bins...")
-        for i, df in enumerate(dfs):
-            hour_bins = np.arange(0, math.floor(labels[i]["los"]["time"]/self.sr+1)+self.sr, self.sr)
-            df["hour_bin"] = pd.cut(df["hours"], bins=hour_bins, labels=False, right=False) # right is not closed
-            df = df.groupby("hour_bin").last() # "hour_bin" becomes index column
-            df = df.reindex(hour_bins[:-1]) # places NaN in hour bins that has no content
-            df.drop(columns=["hours"], inplace=True)
-            dfs[i] = df
+        if self.do_resample:
+            print(f"Resampling to {self.sr}h bins...")
+            for i, df in enumerate(dfs):
+                hour_bins = np.arange(0, math.floor(labels[i]["los"]["time"]/self.sr+1)+self.sr, self.sr)
+                df["hour_bin"] = pd.cut(df["hours"], bins=hour_bins, labels=False, right=False) # right is not closed
+                df = df.groupby("hour_bin").last() # "hour_bin" becomes index column
+                df = df.reindex(hour_bins[:-1]) # places NaN in hour bins that has no content
+                df.drop(columns=["hours"], inplace=True)
+                dfs[i] = df
 
         # get rid of nan values by 1. forward filling 2. impute with avg values
         valid_flags = [True] * len(keys)
@@ -285,7 +308,7 @@ class Mimic3BenchmarkDatasetPreprocessor:
             df.ffill(inplace=True) # foward fill
             for name in self.feature_dict.keys(): # replace remaining nans (at the beginning) with reported avgs in paper
                 df[name].fillna(stats["orig_feature_avg"][name], inplace=True)
-            if len(df) != len(labels[i]["los"]["labels"]): # test that the seq length is equal to los labels length
+            if self.sr == 1. and len(df) != len(labels[i]["los"]["labels"]): # test that the seq length is equal to los labels length when sr is set correctly
                 print(f'Time series "{keys[i]}" has a mismatched length with its associated los prediction task labels. Ignored.')
                 print(len(df), len(labels[i]["los"]["labels"]), len(labels[i]["decomp"]["labels"]))
                 valid_flags[i] = False
@@ -352,7 +375,7 @@ def parse_args():
     
     parser.add_argument("--name", "-n", type=str, required=True, help='Dataset name. Choose from ["mimic3benchmark",]')
     parser.add_argument("--dir", "-d", type=str, required=True, help="Root directory of that chosen dataset.")
-    parser.add_argument("--sr", "-s", type=float, default=1., help="Re-sampling rate in hours.")
+    parser.add_argument("--sr", "-s", type=float, default=None, help="Re-sampling rate in hours.")
     parser.add_argument("--one_hot", "-o", action="store_true", help="One-hot encode the catrgorical feature columns.")
 
     args = parser.parse_args()
@@ -370,6 +393,10 @@ def main():
 
     if args.name == "mimic3benchmark":
         preprocessor = Mimic3BenchmarkDatasetPreprocessor(sr=args.sr, tensor=True, one_hot=args.one_hot)
+        # test code
+        # preprocessor.preprocess(os.path.join(args.dir, "toy/"))
+
+        # actuall processing
         train_stats = preprocessor.preprocess(os.path.join(args.dir, "train/"))
         preprocessor.preprocess(os.path.join(args.dir, "test/"), stats=train_stats)
 

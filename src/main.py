@@ -467,7 +467,7 @@ class VanillaDistillConfig:
     num_heads: int = 4
     num_layers: int = 3
     embed_dim: int = 32
-    n_inner_steps: int = 10 # TODO: 50
+    n_inner_steps: int = 50 # TODO: 50
     n_epochs: int = 100
     lr_data: float = 1e-3
     wd_data: float = 1e-4
@@ -475,9 +475,9 @@ class VanillaDistillConfig:
     lr_lr_model: float = 1e-3
     min_lr_model: float = 1e-5
     ihm_w: float = 1
-    los_w: float = 0 # TODO
-    pheno_w: float = 0
-    decomp_w: float = 0
+    los_w: float = 1 # TODO
+    pheno_w: float = 1
+    decomp_w: float = 1
 
 
 def distill(args):
@@ -597,7 +597,7 @@ def distill(args):
 
 def eval(args):
     # support glob, get the lexi largest one if multiple matches
-    state_dict_path = '../saved_data/20240228-07*/e53_*.pkl'
+    state_dict_path = '../saved_data/20240228-05*/e66_*.pkl'
     path_match = glob.glob(state_dict_path)
     if len(path_match) < 1:
         raise Exception(f'No synthetic set state dict file found at "{state_dict_path}"')
@@ -610,9 +610,9 @@ def eval(args):
     lr = state_dict['lr_model']
     
     config = VanillaDistillConfig()
-    config.n_inner_steps = 10
-    config.n_samples = 10
-    config.batch_size_syn = 10
+    config.n_inner_steps = 50
+    config.n_samples = 1
+    config.batch_size_syn = 1
     model = TransformerEncoderPlusMimic3BenchmarkMultitaskHeads(
         num_features=state_dict['n_features'],
         max_seq_len=state_dict['seq_len'],
