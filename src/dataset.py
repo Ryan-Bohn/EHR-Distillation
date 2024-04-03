@@ -254,6 +254,9 @@ class Mimic3BenchmarkMultitaskDatasetCollator:
         batch_padding_masks = []
         for data_dict in raw_batch:
             feature = data_dict["feature"]
+            # truncate feature to max_seq_len if longer
+            if feature.size(0) > self.max_seq_len:
+                feature = feature[:self.max_seq_len]
             # pad feature to max_length
             padded_features = torch.nn.functional.pad(feature, (0, 0, 0, self.max_seq_len - feature.size(0)))
             batch_features.append(padded_features)

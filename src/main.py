@@ -91,7 +91,9 @@ def parse_args():
     if args.exp == "fit": # process fit arguments
 
         for task in args.tasks: # check every task name is legal
-            if task not in ["ihm", "los", "pheno", "decomp"]:
+            if task not in ["ihm", # currently only support ihm single task fitting
+                            # "los", "pheno", "decomp"
+                            ]:
                 raise NotImplementedError()
         args.tasks = set(args.tasks) # convert task list to set
 
@@ -230,13 +232,20 @@ def fit_ihm(args):
     print(f"NUM_LAYERS = {NUM_LAYERS}")
     
     # load datasets
-    train_set = Mimic3BenchmarkMultitaskDataset("../data/mimic3/benchmark/multitask/train/saves/*.pkl") # if passing a glob, it'll load the latest save satisfying the glob
-    test_set = Mimic3BenchmarkMultitaskDataset("../data/mimic3/benchmark/multitask/test/saves/*.pkl")
+    # resampled to 1h
+    # train_set = Mimic3BenchmarkMultitaskDataset("../data/mimic3/benchmark/multitask/train/saves/20240214-*.pkl") # if passing a glob, it'll load the latest save satisfying the glob
+    # test_set = Mimic3BenchmarkMultitaskDataset("../data/mimic3/benchmark/multitask/test/saves/20240214-*.pkl")
+    # no resample
+    train_set = Mimic3BenchmarkMultitaskDataset("../data/mimic3/benchmark/multitask/train/saves/20240319-*.pkl") # if passing a glob, it'll load the latest save satisfying the glob
+    test_set = Mimic3BenchmarkMultitaskDataset("../data/mimic3/benchmark/multitask/test/saves/20240319-*.pkl")
     print(f"Datasets loaded. Train set size: {len(train_set)}; Test set size: {len(test_set)}")
 
     # use first sample in train set as example
     example_tensor = train_set[0]["feature"]
     num_features = example_tensor.shape[1]
+
+    # see if we are also embedding time stamps
+    do_embed_stamp = train_set.info["sr"] is None or train_set.info["sr"] < 0.
 
     # create dataloaders
     collator = Mimic3BenchmarkMultitaskDatasetCollator(max_seq_len=MAX_SEQ_LEN, tasks={"ihm"})
@@ -251,7 +260,8 @@ def fit_ihm(args):
         dropout=DROPOUT,
         num_heads=NUM_HEADS,
         num_layers=NUM_LAYERS,
-        embed_dim=EMBED_DIM
+        embed_dim=EMBED_DIM,
+        do_embed_stamp=do_embed_stamp
         ).to(DEVICE)
 
     # Loss Function
@@ -492,8 +502,8 @@ def distill(args):
         print(f'Configs: {json.dumps(asdict(config))}')
 
         # load real datasets
-        train_set = Mimic3BenchmarkMultitaskDataset("../data/mimic3/benchmark/multitask/train/saves/*.pkl") # if passing a glob, it'll load the latest save satisfying the glob
-        test_set = Mimic3BenchmarkMultitaskDataset("../data/mimic3/benchmark/multitask/test/saves/*.pkl")
+        train_set = Mimic3BenchmarkMultitaskDataset("../data/mimic3/benchmark/multitask/train/saves/20240214-*.pkl") # if passing a glob, it'll load the latest save satisfying the glob
+        test_set = Mimic3BenchmarkMultitaskDataset("../data/mimic3/benchmark/multitask/test/saves/20240214-*.pkl")
         print(f"Datasets loaded. Train set size: {len(train_set)}; Test set size: {len(test_set)}")
 
         # use first sample in train set as example
@@ -623,8 +633,8 @@ def eval(args):
     ).to(DEVICE)
 
     # load real datasets
-    train_set = Mimic3BenchmarkMultitaskDataset("../data/mimic3/benchmark/multitask/train/saves/*.pkl") # if passing a glob, it'll load the latest save satisfying the glob
-    test_set = Mimic3BenchmarkMultitaskDataset("../data/mimic3/benchmark/multitask/test/saves/*.pkl")
+    train_set = Mimic3BenchmarkMultitaskDataset("../data/mimic3/benchmark/multitask/train/saves/20240214-*.pkl") # if passing a glob, it'll load the latest save satisfying the glob
+    test_set = Mimic3BenchmarkMultitaskDataset("../data/mimic3/benchmark/multitask/test/saves/20240214-*.pkl")
     print(f"Datasets loaded. Test set size: {len(test_set)}")
 
     # use first sample in train set as example
